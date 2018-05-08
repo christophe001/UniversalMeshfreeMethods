@@ -234,14 +234,14 @@ namespace msl {
 			cpn->compute();
 			nbh_ = cpn->getNeighborhoodData();
 			pbh_ = cpn->getPeriNeighborData();
-			std::cout << "compute neighborhood done!\n\n";
+			std::cout << "neighborhood computation done!\n\n";
 		}
 		std::cout
 			<< "***************************  CONFIG SOLVER  ****************************\n"
 			<< "configuring ..\n";
 		if (lcompute == "pd_jh2")
 			l_compute_ = std::make_shared<StateBasedPDJH2>(sorted_, nbh_, pbh_);
-		std::cout << "solver configuration done!\n\n";
+		std::cout << "solver configuration succeed!\n\n";
 
 	}
 
