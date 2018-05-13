@@ -45,7 +45,7 @@ namespace msl {
 		attrs.push_back(MyAttr("tensor", "d", false, "zero"));
 		attrs.push_back(MyAttr("tensor", "tau", false, "zero"));
 		attrs.push_back(MyAttr("vector", "initial_position", true, "pos"));
-		attrs.push_back(MyAttr("scalar", "density", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "density", true, "constant", 3700));
 		attrs.push_back(MyAttr("scalar", "lame_lambda", false, "constant", lambda));
 		attrs.push_back(MyAttr("scalar", "lame_mu", false, "constant", mu));
 		attrs.push_back(MyAttr("scalar", "pressure", true, "zero"));
