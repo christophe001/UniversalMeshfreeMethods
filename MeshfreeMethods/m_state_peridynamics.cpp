@@ -140,7 +140,7 @@ namespace msl {
 			Mat3d P_i = deformation_[i].determinant() * sigma_i * deformation_[i].inverse().transpose();
 			Mat3d P_j = deformation_[j].determinant() * sigma_j * deformation_[j].inverse().transpose();
 			Vec3d force_i = influence(d) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
-			acc_[i] += force_i * volumeCorrector(d) * dv_ / rho_;
+			acc_[dict_[i]] += force_i * volumeCorrector(d) * dv_ / rho_;
 		}
 	}
 

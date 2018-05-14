@@ -88,7 +88,7 @@ namespace msl {
 	//==============================================================================
 	void SelfContactManager::updateVerletList() {
 		if (range_ - epsilon_ - 2 * ds_max_ < 0) {
-			sorted_ptr_->makeSortPartial(false);
+			sorted_ptr_->makeSortPartial(true);
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP_

@@ -253,6 +253,48 @@ namespace msl {
 			acc_[i] -= rc_ * vel_[i];
 	}
 
+	void MeshfreeSolver::addPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++) {
+			if (shape->isWithin(pos_[i])) {
+				acc_[i] += force;
+			}
+		}
+	}
+
+	void MeshfreeSolver::addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
+		Vec3d * ipos = ensemble_->getVectorAttrPtr("initial_position")->getAttr();
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++) {
+			if (shape->isWithin(ipos[i])) {
+				acc_[dict_[i]] += force;
+			}
+		}
+	}
+
+	void MeshfreeSolver::configExternalPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
+		force_regions_.push_back(shape);
+		forces_.push_back(force);
+	}
+
+	void MeshfreeSolver::configExternalInitPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
+		force_init_regions_.push_back(shape);
+		forces_init_.push_back(force);
+	}
+
+	void MeshfreeSolver::initForces() {
+		for (int i = 0; i < force_regions_.size(); i++) {
+			addPosForce(force_regions_[i], forces_[i]);
+		}
+		for (int i = 0; i < force_init_regions_.size(); i++) {
+			addInitialPosForce(force_init_regions_[i], forces_init_[i]);
+		}
+	}
+
 	void MeshfreeSolver::printMemoryInfo() {
 		std::cout
 			<< "***************************  MEMORY SUMMARY  ***************************\n"

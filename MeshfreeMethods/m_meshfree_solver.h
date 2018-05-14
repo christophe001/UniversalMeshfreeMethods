@@ -60,6 +60,11 @@ namespace msl {
 		double									horizon_;
 		bool									relaxation_;
 		double									rc_;	//! relaxation parameter
+
+		std::vector<std::shared_ptr<Shape>>		force_regions_;
+		std::vector<std::shared_ptr<Shape>>		force_init_regions_;
+		std::vector<Vec3d>						forces_;
+		std::vector<Vec3d>						forces_init_;
 		
 
 	public:
@@ -96,6 +101,11 @@ namespace msl {
 		void configSolver(std::string lcompute, std::string ecompute, 
 			std::vector<std::string> attrs = std::vector<std::string>());
 		void adaptiveRelaxation();
+		void addPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		void addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		void configExternalPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		void configExternalInitPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		void initForces();
 		void printMemoryInfo();
 		void verletUpdate();
 		void saveVtk();
