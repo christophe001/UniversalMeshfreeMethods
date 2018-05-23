@@ -15,6 +15,7 @@
 
 #include "m_contact_manager.h"
 #include <omp.h>
+#include <algorithm>
 
 namespace msl {
 
@@ -35,11 +36,17 @@ namespace msl {
 		ensemble_m_ = master_->ensemble_ptr_;
 		spos_ = ensemble_s_->getPos();
 		mpos_ = ensemble_m_->getPos();
+		svel_ = ensemble_s_->getVel();
+		mvel_ = ensemble_m_->getVel();
 		sacc_ = ensemble_s_->getAcc();
 		macc_ = ensemble_m_->getAcc();
 		class_name_ = "ContactManager";
 		updateContactZone();
-		computeContactTime();
+	}
+
+	void ContactManager::setEpsilonDtMax(const double & epsilon, const double & dt_max) {
+		epsilon_ = epsilon;
+		dt_ = dt_max_ = dt_max;
 	}
 
 	//==============================================================================
@@ -51,6 +58,7 @@ namespace msl {
 			int y = cell_max_[1] - cell_min_[1] + 1;
 			int z = cell_max_[2] - cell_min_[2] + 1;
 			int cell_num = x * y * z;
+			dt_ = dt_max_;
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP_
@@ -82,15 +90,6 @@ namespace msl {
 	}
 
 	//==============================================================================
-	/// compute time to contact
-	//==============================================================================
-	void ContactManager::computeContactTime() {
-		Vec2d sv = ensemble_s_->getVelMinMax();
-		Vec2d mv = ensemble_m_->getVelMinMax();
-		time_to_contact_ =  epsilon_ / (sv[1] + mv[1]);
-	}
-
-	//==============================================================================
 	/// Update contact zone
 	//==============================================================================
 	void ContactManager::updateContactZone() {
@@ -115,6 +114,10 @@ namespace msl {
 	void ContactManager::penaltyHandler(int i, int j) {
 		if ((spos_[j] - mpos_[i]).norm() < epsilon_) {
 			Vec3d eta = spos_[j] - mpos_[i];
+			Vec3d dvel = svel_[j] - mvel_[i];
+			if (dvel.dot(eta) < 0) {
+				dt_ = std::min(eta.squaredNorm() / abs(dvel.dot(eta)), dt_);
+			}
 			Vec3d force = force_const_ * dv_ * eta / eta.norm() * log(epsilon_ / eta.norm());
 			macc_[i] -= force;
 			sacc_[j] += force;

@@ -199,6 +199,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="m_compute_neighborhood.cpp" />
     <ClCompile Include="m_contact_manager.cpp" />
+    <ClCompile Include="m_contact_test.cpp" />
     <ClCompile Include="m_domain_config.cpp" />
     <ClCompile Include="m_ensemble.cpp" />
     <ClCompile Include="m_ensemble_attribute.cpp" />
@@ -221,6 +222,7 @@
   <ItemGroup>
     <ClInclude Include="m_compute_neighborhood.h" />
     <ClInclude Include="m_contact_manager.h" />
+    <ClInclude Include="m_contact_test.h" />
     <ClInclude Include="m_domain_config.h" />
     <ClInclude Include="m_ensemble.h" />
     <ClInclude Include="m_ensemble_attribute.h" />

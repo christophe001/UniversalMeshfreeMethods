@@ -78,6 +78,9 @@
     <ClCompile Include="m_neighborhood_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="m_contact_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="u_timer.h">
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="m_neighborhood_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_contact_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
