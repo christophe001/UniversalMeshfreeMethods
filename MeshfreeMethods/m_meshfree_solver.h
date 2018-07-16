@@ -27,16 +27,28 @@ namespace msl {
 		//typedef std::vector<std::shared_ptr<LagrangianCompute>> LCompute;
 		//typedef std::vector<std::shared_ptr<EulerianCompute>>	ECompute;
 
+		//*********************************************************************
+		//!							Underlying ensemble
+		//*********************************************************************
 		std::shared_ptr<Ensemble>				ensemble_;
 		std::shared_ptr<SortEnsemble>			sorted_;
 		std::shared_ptr<NeighborhoodData>		nbh_;
 		std::shared_ptr<PeriNeighborData>		pbh_;
 		
+		//*********************************************************************
+		//!				Lagrangian and Eulerian compute object 
+		//*********************************************************************
 		std::shared_ptr<LagrangianCompute>		l_compute_;
 		std::shared_ptr<EulerianCompute>		e_compute_;
 
+		//*********************************************************************
+		//!						creator of ensemble
+		//*********************************************************************
 		std::shared_ptr<EnsembleCreator>		creator_;
 
+		//*********************************************************************
+		//!							ensemble attributes
+		//*********************************************************************
 		DomainConfig							domain_config_;
 		int										np_;
 		int*									id_;
@@ -44,23 +56,38 @@ namespace msl {
 		Vec3d*									pos_;
 		Vec3d*									vel_;
 		Vec3d*									acc_;
-		Vec3d*									stack_;
+		//! Memory used to update ensemble attributes
+		Vec3d*									stack_; 
+
+		//*********************************************************************
+		//!			Ensemble attributes associated with particles
+		//*********************************************************************
 		std::vector<Ensemble::ScalarAttrPtr>	scalar_attrs_;
 		std::vector<Ensemble::VectorAttrPtr>	vector_attrs_;
 		std::vector<Ensemble::TensorAttrPtr>	tensor_attrs_;
 
+		//*********************************************************************
+		//!				Attributes to be saved during simulation
+		//*********************************************************************
 		std::vector<std::string>				scalar_saves_;
 		std::vector<std::string>				vector_saves_;
 
+		//*********************************************************************
+		//!							Run parameters
+		//*********************************************************************
 		std::string								filename_;
 		std::string								folder_;
 		int										timestep_, max_step_;
 		int										sv_step_, sv_count_;
 		double									dp_, dt_, T_;
+		double									dt_max_;
 		double									horizon_;
 		bool									relaxation_;
 		double									rc_;	//! relaxation parameter
 
+		//*********************************************************************
+		//!							Initial forces
+		//*********************************************************************
 		std::vector<std::shared_ptr<Shape>>		force_regions_;
 		std::vector<std::shared_ptr<Shape>>		force_init_regions_;
 		std::vector<Vec3d>						forces_;
@@ -101,11 +128,13 @@ namespace msl {
 		void configSolver(std::string lcompute, std::string ecompute, 
 			std::vector<std::string> attrs = std::vector<std::string>());
 		void adaptiveRelaxation();
+		void setInitVel(Vec3d vel);
 		void addPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void configExternalPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void configExternalInitPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void initForces();
+		void setDt(double dt) { dt_ = dt; }
 		void printMemoryInfo();
 		void verletUpdate();
 		void saveVtk();

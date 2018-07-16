@@ -25,13 +25,15 @@ namespace msl {
 	protected:
 		Mat3d*		shape_tensor_;
 		Mat3d*		deformation_;
+		Mat3d*		deformation_last_;
+
 		Mat3d*		deformation_dot_;
 		Mat3d*		rotation_;
 		Mat3d*		left_stretch_;
 		//Mat3d*		tau_;
 		Mat3d*		d_;					//! unrotated deformation rate of tensor D
 		Mat3d*		left_stretch_dot_;
-		Mat3d*		tau_;
+		Mat3d*		tau_;				//! cauchy stress
 
 		Vec3d*		init_pos_;
 
@@ -49,6 +51,7 @@ namespace msl {
 		double		dt_;				//! dt
 		double		rho_;				//! initial density;
 		bool		shape_calc_;		//! indicate if calculated shape tensor
+			
 
 	public:
 		StateBasedPD(std::shared_ptr<SortEnsemble> sorted, 
@@ -73,6 +76,8 @@ namespace msl {
 		void addDeformationGradient(int i, long it);
 		
 		void addForceState(int i, long it);
+
+		void addForceStateNoRot(int i, long it);
 		
 		void computeShapeTensor();
 		

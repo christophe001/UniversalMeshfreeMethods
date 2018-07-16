@@ -81,6 +81,21 @@
     <ClCompile Include="m_contact_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="m_meta_solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_meshfree_base.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_state_kl_model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_collision_plate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_rigid_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="u_timer.h">
@@ -150,6 +165,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="m_contact_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_meta_solver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_state_kl_model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_meshfree_base.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_collision_plate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_rigid_body.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

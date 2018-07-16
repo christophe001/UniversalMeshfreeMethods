@@ -16,6 +16,7 @@
 #define _M4_CONTACT_MANAGER_
 
 #include "m_types.h"
+#include <unordered_map>
 #include "m_ensemble.h"
 #include "m_sort_ensemble.h"
 
@@ -42,21 +43,24 @@ namespace msl {
 		DomainConfig*					domain_cfg_;
 		double							dv_;
 		double							force_const_;
-		double							time_to_contact_;
 
 	public:
 		ContactManager(std::shared_ptr<SortEnsemble> master,
-			std::shared_ptr<SortEnsemble> slave, double epsilon);
+			std::shared_ptr<SortEnsemble> slave, double epsilon, double dt);
 		void setEpsilonDtMax(const double& epsilon, const double& dt_max);
 		void setForceParams(const double& dv, const double& fc) { dv_ = dv; force_const_ = fc; }
+
 		ContactManager(const ContactManager& cm) = delete;
+		ContactManager(ContactManager&& cm) = delete;
 		ContactManager& operator=(const ContactManager& cm) = delete;
+		ContactManager& operator=(ContactManager&& cm) = delete;
+		
 		virtual ~ContactManager() {}
 		typedef void (ContactManager::*handler)(int i, int j);
 		void computeContact(handler hptr = &penaltyHandler);
 		void updateContactZone();
 		void penaltyHandler(int i, int j);
-		double getTimeToContact() { return time_to_contact_; }
+		double getDt() { return dt_; }
 	};
 }
 #endif // !_M4_CONTACT_MANAGER_

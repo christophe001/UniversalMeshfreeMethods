@@ -72,6 +72,15 @@ namespace msl {
 	}
 
 	//==============================================================================
+	/// Set dp and density
+	//==============================================================================
+	void Ensemble::setDpDensity(double dp, double rho) {
+		dp_ = dp;
+		density_ = rho;
+		mass_ = density_ * dp_ * dp_ * dp_;
+	}
+
+	//==============================================================================
 	/// Add scalar attribute to ensemble
 	//==============================================================================
 	void Ensemble::addScalarAttribute(std::string s) {

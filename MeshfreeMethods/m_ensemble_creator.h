@@ -24,6 +24,7 @@ namespace msl {
 		std::shared_ptr<Shape>		shape_;
 		std::shared_ptr<Shape>		shape_actual_;
 		double						dp_;
+		double						density_;
 		Vec3d						offset_;
 		Vec3d*						cache_;
 	public:
@@ -53,7 +54,7 @@ namespace msl {
 		void setTensorAttribute(std::string s, Mat3d*  ta);
 		void setTensorAttributeZero(std::string s);
 		void setTensorAttributeIdentity(std::string s);
-		void setDp(double dp);
+		void setDpDensity(double dp, double rho);
 		void setDpActual(double dp) { dp_ = dp; }
 		void create();
 		double getDp() const { return dp_; }

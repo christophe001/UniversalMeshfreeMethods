@@ -166,7 +166,7 @@ namespace msl {
 		creator_->addTensorAttributes(tas);
 		creator_->setDims(dims);
 		creator_->setOrientation(orientation, theta);
-		creator_->setDp(dp);
+		creator_->setDpDensity(dp, 3700);
 		creator_->create();
 		for (auto info : infos) {
 			if (info.m_attr_type == "scalar") {
@@ -219,7 +219,6 @@ namespace msl {
 		sorted_->setDomainConfig(domain_config_);
 		sorted_->makeSortFull(true);
 		std::cout << "sorting completed!\n\n";
-
 	}
 
 	void MeshfreeSolver::configSolver(std::string lcompute, std::string ecompute,
@@ -251,6 +250,15 @@ namespace msl {
 #endif // _WITH_OMP_
 		for (int i = 0; i < np_; i++)
 			acc_[i] -= rc_ * vel_[i];
+	}
+
+	void MeshfreeSolver::setInitVel(Vec3d vel) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++) {
+			vel_[i] = vel;
+		}
 	}
 
 	void MeshfreeSolver::addPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
@@ -310,26 +318,29 @@ namespace msl {
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
-			for (int i = 0; i < np_; i++) {
-				stack_[i] = acc_[i];
-				pos_[i] += vel_[i] * dt_ + 0.5 * dt_ * dt_ * acc_[i];
-			}
-#ifdef _WITH_OMP_
-#pragma omp parallel for schedule(static)
-#endif // _WITH_OMP
-			for (int i = 0; i < np_; i++)
-				acc_[i] = Vec3d::Zero();
+			for (int i = 0; i < np_; i++) 
+				pos_[i] += vel_[i] * dt_ + 0.5 * dt_ * dt_ * stack_[i];
+
 			if (l_compute_ != nullptr)
 				l_compute_->computeForces();
 			if (e_compute_ != nullptr)
 				e_compute_->computeForces();
 			if (relaxation_)
 				adaptiveRelaxation();
+
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
 			for (int i = 0; i < np_; i++)
 				vel_[i] += (acc_[i] + stack_[i]) * 0.5 * dt_;
+
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+			for (int i = 0; i < np_; i++) {
+				stack_[i] = acc_[i];
+				acc_[i] = Vec3d::Zero();
+			}
 	}
 
 	void MeshfreeSolver::saveVtk() {

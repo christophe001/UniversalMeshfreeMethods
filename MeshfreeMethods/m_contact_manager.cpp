@@ -23,14 +23,14 @@ namespace msl {
 	/// Ctor
 	//==============================================================================
 	ContactManager::ContactManager(std::shared_ptr<SortEnsemble> master, 
-		std::shared_ptr<SortEnsemble> slave, double epsilon) 
-		: slave_(slave), master_(master), 
-		epsilon_(epsilon), time_to_contact_(0)
+		std::shared_ptr<SortEnsemble> slave, double epsilon, double dt) 
+		: slave_(slave), master_(master)
 	{
 #ifdef _DEBUG_
 		if (*(slave_->domain_cfg_) != *(master_->domain_cfg_))
 			throwException("ContactManager", "Ensemble have different domain configuration");
 #endif // _DEBUG_
+		setEpsilonDtMax(epsilon, dt);
 		domain_cfg_ = master_->getDomainConfig();
 		ensemble_s_ = slave_->ensemble_ptr_;
 		ensemble_m_ = master_->ensemble_ptr_;
@@ -93,6 +93,8 @@ namespace msl {
 	/// Update contact zone
 	//==============================================================================
 	void ContactManager::updateContactZone() {
+		ensemble_s_->calcBox();
+		ensemble_m_->calcBox();
 		Vec3d s_pmin = ensemble_s_->getPosMin();
 		Vec3d s_pmax = ensemble_s_->getPosMax();
 		Vec3d m_pmin = ensemble_m_->getPosMin();
@@ -100,8 +102,8 @@ namespace msl {
 		Vec3i cell_offset = domain_cfg_->getCellOffset();
 		Vec3d aug_m_pmin = m_pmin - epsilon_ * cell_offset.cast<double>();
 		Vec3d aug_m_pmax = m_pmax + epsilon_ * cell_offset.cast<double>();
-		contact_pmin_ = m_pmin - epsilon_ * cell_offset.cast<double>();
-		contact_pmax_ = m_pmax + epsilon_ * cell_offset.cast<double>();
+		//contact_pmin_ = m_pmin - epsilon_ * cell_offset.cast<double>();
+		//contact_pmax_ = m_pmax + epsilon_ * cell_offset.cast<double>();
 		contact_pmin_ = aug_m_pmin.cwiseMax(s_pmin);
 		contact_pmax_ = aug_m_pmax.cwiseMin(s_pmax);
 		cell_min_ = domain_cfg_->getCellNum(contact_pmin_);
@@ -119,8 +121,8 @@ namespace msl {
 				dt_ = std::min(eta.squaredNorm() / abs(dvel.dot(eta)), dt_);
 			}
 			Vec3d force = force_const_ * dv_ * eta / eta.norm() * log(epsilon_ / eta.norm());
-			macc_[i] -= force;
-			sacc_[j] += force;
+			macc_[i] -= force / ensemble_m_->getMass();
+			sacc_[j] += force / ensemble_s_->getMass();
 		}
 	}
 

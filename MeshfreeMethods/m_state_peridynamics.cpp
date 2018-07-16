@@ -30,18 +30,27 @@ namespace msl {
 		shape_tensor_		= ensemble_ptr_->getTensorAttrPtr("shape_tensor")->getAttr();
 		deformation_		= ensemble_ptr_->getTensorAttrPtr("deformation")->getAttr();
 		deformation_dot_	= ensemble_ptr_->getTensorAttrPtr("deformation_dot")->getAttr();
-		rotation_			= ensemble_ptr_->getTensorAttrPtr("rotation")->getAttr();
-		left_stretch_		= ensemble_ptr_->getTensorAttrPtr("left_stretch")->getAttr();
-		left_stretch_dot_	= ensemble_ptr_->getTensorAttrPtr("left_stretch_dot")->getAttr();
-		d_					= ensemble_ptr_->getTensorAttrPtr("d")->getAttr();
 		tau_				= ensemble_ptr_->getTensorAttrPtr("tau")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("deformation_last"))
+			deformation_last_ = ensemble_ptr_->getTensorAttrPtr("deformation_last")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("rotation"))
+			rotation_ = ensemble_ptr_->getTensorAttrPtr("rotation")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("left_stretch"))
+			left_stretch_ = ensemble_ptr_->getTensorAttrPtr("left_stretch")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("left_stretch_dot"))
+			left_stretch_dot_ = ensemble_ptr_->getTensorAttrPtr("left_stretch_dot")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("d"))
+			d_ = ensemble_ptr_->getTensorAttrPtr("d")->getAttr();
 		init_pos_	= ensemble_ptr_->getVectorAttrPtr("initial_position")->getAttr();
 		density_	= ensemble_ptr_->getScalarAttrPtr("density")->getAttr();
-		lambda_		= ensemble_ptr_->getScalarAttrPtr("lame_lambda")->getAttr();
-		mu_			= ensemble_ptr_->getScalarAttrPtr("lame_mu")->getAttr();
+		if (ensemble_ptr_->hasScalarAttribute("lame_lambda"))
+			lambda_ = ensemble_ptr_->getScalarAttrPtr("lame_lambda")->getAttr();
+		if (ensemble_ptr_->hasScalarAttribute("lame_mu"))
+			mu_ = ensemble_ptr_->getScalarAttrPtr("lame_mu")->getAttr();
 
 		nbl_ = nbh_->getNeighborhoodList();
 		np_ = ensemble_ptr_->getNp();
+
 		i_epsilon_ = 0;
 		i_p_ = 2;
 		shape_calc_ = false;
@@ -144,6 +153,18 @@ namespace msl {
 		}
 	}
 
+	void StateBasedPD::addForceStateNoRot(int i, long it) {
+		if (nbh_->getBondDamage()[it] < 1.0) {
+			int j = nbl_[it];
+			Vec3d xi = init_pos_[j] - init_pos_[i];
+			double d = xi.norm();
+			Mat3d P_i = deformation_[i].determinant() * tau_[i] * deformation_[i].inverse().transpose();
+			Mat3d P_j = deformation_[j].determinant() * tau_[j] * deformation_[j].inverse().transpose();
+			Vec3d force_i = influence(d) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
+			acc_[dict_[i]] += force_i * volumeCorrector(d) * dv_ / rho_;
+		}
+	}
+
 	void StateBasedPD::computeShapeTensor() {
 		if (shape_calc_)
 			return;
@@ -231,6 +252,11 @@ namespace msl {
 
 	void StateBasedPD::computeForces() {
 		computeShapeTensor();
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++)
+			deformation_last_[i] = deformation_[i];
 		computeDeformation();
 		computeDeformationDot();
 		updateDensity();

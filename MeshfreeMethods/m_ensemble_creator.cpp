@@ -161,12 +161,13 @@ namespace msl {
 	//==============================================================================
 	/// set dp
 	//==============================================================================
-	void EnsembleCreator::setDp(double dp) {
+	void EnsembleCreator::setDpDensity(double dp, double rho) {
 		if (shape_->getVolume() == 0.0)
 			throwException("create()", "Must set dims first");
 		double l = shape_->getFirstDim();
 		int sz = int(l / dp) + 1;
 		dp_ = l / double(sz);
+		density_ = rho;
 	}
 
 	//==============================================================================
@@ -176,7 +177,6 @@ namespace msl {
 		if (dp_ == 0.0)
 			throwException("create()", "Must set dp first");
 		double voxel = shape_->shape2D() ? dp_ * dp_ : dp_ * dp_ * dp_;
-		
 		std::cout << "voxel volume: " << voxel << std::endl;
 		std::cout << "shape volume: " << shape_->getVolume() << std::endl;
 		int size_approx = int(shape_->getVolume() / voxel * 1.2);
@@ -226,6 +226,7 @@ namespace msl {
 			(ensemble_->acc_)[i] = Vec3d::Zero();
 			(ensemble_->vel_)[i] = Vec3d::Zero();
 		}
+		ensemble_->setDpDensity(dp_, density_);
 		if (ensemble_->hasVectorAttribute("Initial_position"))
 			setVectorAttribute("Initial_position", cache_);
 	}

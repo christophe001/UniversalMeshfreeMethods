@@ -40,12 +40,16 @@ namespace msl {
 		~Ensemble();
 
 		void setNp(int i);
+		void setDpDensity(double dp, double rho);
 		void addScalarAttribute(std::string s = "");
 		void addVectorAttribute(std::string s = "");
 		void addTensorAttribute(std::string s = "");
 		int getNp() const { return np_; }
 		Vec3d getPosMin() const { return pos_min_; }
 		Vec3d getPosMax() const { return pos_max_; }
+		double getDp() const { return dp_; }
+		double getDensity() const { return density_; }
+		double getMass() const { return mass_; }
 		Vec2d getVelMinMax() const;
 		Vec2d getAccMinMax() const;
 		int* getId() { return id_; }
@@ -70,6 +74,9 @@ namespace msl {
 		int			np_;		//! number of total particles
 		int*		id_;		//! particle ids
 		int*		dict_;		//! used to sort particles  pid-> curr
+		double		density_;	//! density
+		double		mass_;		//! mass of single particle
+		double		dp_;		//! inter-particle distance
 		Vec3d*		pos_;		//! position vectors for ensemble
 		Vec3d*		vel_;		//! velocity vectors for ensemble
 		Vec3d*		acc_;		//! acceleration vectors for ensemble

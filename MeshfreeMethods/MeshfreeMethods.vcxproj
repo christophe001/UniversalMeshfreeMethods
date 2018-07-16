@@ -197,6 +197,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="m_collision_plate.cpp" />
     <ClCompile Include="m_compute_neighborhood.cpp" />
     <ClCompile Include="m_contact_manager.cpp" />
     <ClCompile Include="m_contact_test.cpp" />
@@ -206,20 +207,25 @@
     <ClCompile Include="m_ensemble_creator.cpp" />
     <ClCompile Include="m_eulerian_compute.cpp" />
     <ClCompile Include="m_lagrangian_compute.cpp" />
+    <ClCompile Include="m_meshfree_base.cpp" />
     <ClCompile Include="m_meshfree_solver.cpp" />
+    <ClCompile Include="m_meta_solver.cpp" />
     <ClCompile Include="m_neighborhood_data.cpp" />
     <ClCompile Include="m_neighborhood_test.cpp" />
     <ClCompile Include="m_obj.cpp" />
     <ClCompile Include="m_periodic_neighbor_data.cpp" />
+    <ClCompile Include="m_rigid_body.cpp" />
     <ClCompile Include="m_self_contact_manager.cpp" />
     <ClCompile Include="m_shape.cpp" />
     <ClCompile Include="m_sort_ensemble.cpp" />
+    <ClCompile Include="m_state_kl_model.cpp" />
     <ClCompile Include="m_state_pd_jh2.cpp" />
     <ClCompile Include="m_state_peridynamics.cpp" />
     <ClCompile Include="u_exception.cpp" />
     <ClCompile Include="u_timer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="m_collision_plate.h" />
     <ClInclude Include="m_compute_neighborhood.h" />
     <ClInclude Include="m_contact_manager.h" />
     <ClInclude Include="m_contact_test.h" />
@@ -230,16 +236,20 @@
     <ClInclude Include="m_eulerian_compute.h" />
     <ClInclude Include="m_functions.h" />
     <ClInclude Include="m_lagrangian_compute.h" />
+    <ClInclude Include="m_meshfree_base.h" />
     <ClInclude Include="m_meshfree_solver.h" />
+    <ClInclude Include="m_meta_solver.h" />
     <ClInclude Include="m_neighborhood_data.h" />
     <ClInclude Include="m_neighborhood_test.h" />
     <ClInclude Include="m_obj.h" />
     <ClInclude Include="m_periodic_neighbor_data.h" />
+    <ClInclude Include="m_rigid_body.h" />
     <ClInclude Include="m_self_contact_manager.h" />
     <ClInclude Include="m_shape.h" />
     <ClInclude Include="m_sort_ensemble.h" />
     <ClInclude Include="m_state_pd_jh2.h" />
     <ClInclude Include="m_state_peridynamics.h" />
+    <ClInclude Include="m_state_kl_model.h" />
     <ClInclude Include="m_types.h" />
     <ClInclude Include="u_exception.h" />
     <ClInclude Include="u_timer.h" />

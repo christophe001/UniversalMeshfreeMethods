@@ -38,7 +38,7 @@ namespace msl {
 
 		StateBasedPDJH2(std::shared_ptr<ComputeNeighbor> cpn);
 
-		~StateBasedPDJH2() {}
+		virtual ~StateBasedPDJH2() {}
 		
 		void computeTau() override;
 

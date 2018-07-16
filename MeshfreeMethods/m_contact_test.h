@@ -15,12 +15,12 @@
 #ifndef _M4_CONTACT_TEST_
 #define _M4_CONTACT_TEST_
 
-#include "m_contact_manager.h"
-#include "m_self_contact_manager.h"
+#include "m_collision_plate.h"
 
 namespace msl {
 	class ContactTest : public MsObj {
-
+		
+		
 	};
 }
 
