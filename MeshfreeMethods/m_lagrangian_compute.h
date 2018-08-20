@@ -50,8 +50,8 @@ namespace msl {
 		LagrangianCompute();
 		LagrangianCompute(std::shared_ptr<ComputeNeighbor> cpn_ptr);
 		LagrangianCompute(std::shared_ptr<SortEnsemble> sorted_ptr);
-		virtual void configModelParams(const std::vector<std::vector<double>>& params) = 0;
-		virtual std::string format() const = 0;
+		virtual void configModelParams(const std::vector<std::vector<double>>& params) {}
+		virtual std::string format() const { return ""; }
 		void init(std::shared_ptr<SortEnsemble> sorted_ptr);
 		void init(std::shared_ptr<ComputeNeighbor> cpn_ptr);
 		void computeBond();

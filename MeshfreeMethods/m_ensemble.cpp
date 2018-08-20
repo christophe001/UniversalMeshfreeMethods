@@ -138,6 +138,8 @@ namespace msl {
 	/// Calculate minimized axis aligned box containing ensemble
 	//==============================================================================
 	void Ensemble::calcBox() {
+		pos_min_ = pos_[0];
+		pos_max_ = pos_[0];
 		for (int i = 0; i < np_; i++) {
 			pos_min_ = pos_min_.cwiseMin(pos_[i]);
 			pos_max_ = pos_max_.cwiseMax(pos_[i]);

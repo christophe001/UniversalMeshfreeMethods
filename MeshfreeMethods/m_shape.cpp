@@ -110,9 +110,9 @@ namespace msl {
 
 	std::vector<double> Circle::getDims() const {
 		std::vector<double> dims(3, 0.0);
-		dims[0] = r_;
+		dims[0] = 2.0 * r_;
 		dims[1] = 0.0;
-		dims[2] = r_;
+		dims[2] = 2.0 * r_;
 		return dims;
 	}
 	
@@ -216,7 +216,7 @@ namespace msl {
 	}
 
 	std::vector<double> Sphere::getDims() const {
-		std::vector<double> dims(3, r_);
+		std::vector<double> dims(3, 2.0 * r_);
 		return dims;
 	}
 
@@ -249,8 +249,8 @@ namespace msl {
 
 	std::vector<double> Cone::getDims() const {
 		std::vector<double> dims(3, 0.0);
-		dims[0] = r_;
-		dims[1] = r_;
+		dims[0] = 2.0 * r_;
+		dims[1] = 2.0 * r_;
 		dims[2] = h_;
 		return dims;
 	}
@@ -284,13 +284,13 @@ namespace msl {
 
 	std::vector<double> Cylinder::getDims() const {
 		std::vector<double> dims(3, 0.0);
-		dims[0] = r_;
-		dims[1] = r_;
+		dims[0] = 2.0 * r_;
+		dims[1] = 2.0 * r_;
 		dims[2] = h_;
 		return dims;
 	}
 
 	bool Cylinder::isWithin(const Vec3d& pos) const {
-		return abs(pos[2]) < h_ / 2.0 && sqrt(pos[0] * pos[0] + pos[1] * pos[1]) < r_ / 2.0;
+		return abs(pos[2]) < h_ / 2.0 && sqrt(pos[0] * pos[0] + pos[1] * pos[1]) < r_ /2.0;
 	}
 }

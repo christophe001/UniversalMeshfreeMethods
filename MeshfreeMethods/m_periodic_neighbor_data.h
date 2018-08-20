@@ -17,10 +17,8 @@
 #define _M4_PERI_NEIGHBOR_DATA_
 
 #include "m_obj.h"
-#include "m_types.h"
 #include <unordered_map>
 #include "m_ensemble_attribute.h"
-#include <memory>
 #pragma warning (disable:4244)
 
 namespace msl {

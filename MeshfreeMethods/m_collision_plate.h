@@ -18,17 +18,18 @@
 
 namespace msl {
 
-	class CollisionPlate : public MetaSolver {
+	class CollisionPlate : public MsObj {
 	protected:
 		ObjInfo projectile_;
 		ObjInfo target_;
+		std::shared_ptr<MetaSolver> meta_;
 
 	public:
-		CollisionPlate(ObjInfo projectile,  ObjInfo target, std::vector<AttributeInfo>& p_infos, 
-			std::vector<AttributeInfo>& t_infos, DomainConfig domain_cfg, double dt, double total_time, int sv = 30);
+		CollisionPlate(ObjInfo projectile,  ObjInfo target, DomainConfig domain_cfg, 
+			std::string folder, std::string file, double dt, double total_time, int sv = 30);
 		virtual ~CollisionPlate() {}
-		void createScene(std::vector<AttributeInfo>& p_infos, std::vector<AttributeInfo>& t_infos);
-		void configMeshfreeSolver();
-		void configContact() override;
+		void config();
+		void run();
+
 	};
 }

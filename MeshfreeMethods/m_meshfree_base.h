@@ -81,12 +81,24 @@ namespace msl {
 		}
 	};
 
+	class AttributesGen : public MsObj {
+	private:
+		ObjInfo obj_;
+	public:
+		AttributesGen(const ObjInfo& obj) : obj_(obj) {}
+		~AttributesGen() {}
+		std::vector<AttributeInfo> getAttrs();
+		static std::vector<AttributeInfo> getRigid();
+		std::vector<AttributeInfo> getStateKL();
+	};
+
 	class MeshfreeBase : public MsObj {
 	protected:
 		//*********************************************************************
 		//		Ensemble structure and computational features
 		//*********************************************************************
-		//! ensemble creator
+		//! ensemble creator 
+		/// initialized in creatEnsemble
 		std::shared_ptr<EnsembleCreator>		creator_;
 		//! underlying ensemble
 		std::shared_ptr<Ensemble>				ensemble_;
@@ -116,6 +128,7 @@ namespace msl {
 		double									density_;
 		//! horizon for particle interaction
 		double									horizon_;
+		double									horizon_ratio_;
 		//! key attributes, pos, vel and acc
 		Vec3d*									pos_;
 		Vec3d*									vel_;
@@ -171,6 +184,7 @@ namespace msl {
 		std::vector<Vec3d>						forces_;
 		//! confined region for position constraint
 		std::vector<std::shared_ptr<Shape>>		confined_regions_;
+		std::vector<std::shared_ptr<Shape>>		confined_regions_complement_;
 		//! forces applied based on initial position
 		std::vector<std::shared_ptr<Shape>>		force_init_regions_;
 		std::vector<Vec3d>						forces_init_;
@@ -178,40 +192,77 @@ namespace msl {
 		Vec3d									init_vel_;
 
 	public:
-		MeshfreeBase(bool const_ts = true, bool enable_rx = false, double rc = 0.0);
-
-		void createEnsemble(ObjInfo obj, DomainConfig domain_config, std::vector<AttributeInfo>& infos);
+		//*********************************************************************
+		//							Running routine
+		//*********************************************************************
+		// 1. MeshfreeBase(const_timesetp, enable_relax, rc_param)
+		// 2. configIO()
+		// 3. configRun()
+		// 4. createEnsemble()
+		// 5. conditions
+		///   setInitVel()
+		///   configPosConstraint(shape)				
+		///   configExternalPosForce(shape, vec)
+		///   configExternalInitPosForce(shape, vec)
+		// 6. run()
+		MeshfreeBase(double h2dp, bool const_ts = true, bool enable_rx = false, double rc = 0.0);
+		void setInitVel(Vec3d vel);
+		//! create
+		void createEnsemble(ObjInfo obj, DomainConfig domain_config);
 		virtual ~MeshfreeBase() {}
+		void configIO(std::string folder, std::string filename);
+		void configRun(double dt, double total_time, int sv_step);
+		virtual void run();
 		//void setParams(double horizon, double sv_step, bool relaxation, double rc = 0.0);
 		void setDomainConfig(const DomainConfig& domain_config) { domain_config_ = domain_config; }
+
+		//*********************************************************************
+		//							IO functions
+		//*********************************************************************
 		void printLabel() const;
 		void printInfo() const;
 		void printMemoryInfo() const;
-		void configSolver(std::string lcompute, std::string ecompute,
-			std::vector<std::string> attrs);
+		void saveVtk();
+
+		//*********************************************************************
+		//							Solver configuration
+		//*********************************************************************
+		void configSolver(std::string lcompute, std::string ecompute = "",
+			std::vector<std::string> attrs = std::vector<std::string>());
 		//! config state kl model
 		void configLagrangianKL();
 		//! config rigid body model
 		void configRigidBody();
 		void adaptiveRelaxation();
-		void setInitVel(Vec3d vel);
-		void addPosForce(std::shared_ptr<Shape> shape, Vec3d force);
-		void addPosConstraint(std::shared_ptr<Shape> shape);
-		void addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+
+		//*********************************************************************
+		//							Object confinement
+		//*********************************************************************
+		//! configs
+		void configPosConstraint(std::shared_ptr<Shape> shape);
+		void configPosConstraintComplement(std::shared_ptr<Shape> shape);
 		void configExternalPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void configExternalInitPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		//! set initial condition
+		void addPosForce(std::shared_ptr<Shape> shape, Vec3d force);
+		void addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void initForces();
+
+		//*********************************************************************
+		//							Run params
+		//*********************************************************************
 		void setDt(double dt);
 		double getDt() const { return dt_; }
 		double getSaveDt() const { return t_intv_; }
 		virtual void configDt() {}
 		double getDtMax() const { return dt_max_; }	
-		void addViscosity() {}
+		
+		//*********************************************************************
+		//							Run operations
+		//*********************************************************************
 		void verletUpdate();
-		void saveVtk();
-		void configIO(std::string folder, std::string filename);
-		void configRun(double dt, double total_time, int sv_step);
-		virtual void run();
+		void addViscosity() {}
+
 		friend class MetaSolver;
 	};
 }

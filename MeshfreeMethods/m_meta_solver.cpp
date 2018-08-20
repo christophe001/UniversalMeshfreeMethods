@@ -22,8 +22,13 @@
 constexpr auto theWatch = msl::Timer::instance;
 
 namespace msl {
-	MetaSolver::MetaSolver() {
+	MetaSolver::MetaSolver(bool ct, bool er, double rc) {
 		class_name_ = "MetaSolver";
+		slave_solv_ = std::make_shared<MeshfreeBase>(3.5);
+		master_solv_ = std::make_shared<MeshfreeBase>(3.5);
+		constant_timestep_ = ct;
+		relaxation_ = er;
+		rc_ = rc;
 	}
 
 	void MetaSolver::printLabel() const {
@@ -65,9 +70,13 @@ namespace msl {
 			<< "** Slave **\n"
 			<< "Total particles: " << slave_solv_->np_ << std::endl
 			<< "Inter-particle distance: " << slave_solv_->dp_ << std::endl
+			<< "Pos min: " << (slave_solv_->ensemble_->getPosMin()).transpose().format(CleanFmt) << std::endl
+			<< "Pos max: " << (slave_solv_->ensemble_->getPosMax()).transpose().format(CleanFmt) << std::endl
 			<< "\n** Master **\n"
 			<< "Total particles: " << master_solv_->np_ << std::endl
 			<< "Inter-particle distance: " << master_solv_->dp_ << std::endl
+			<< "Pos min: " << (master_solv_->ensemble_->getPosMin()).transpose().format(CleanFmt) << std::endl
+			<< "Pos max: " << (master_solv_->ensemble_->getPosMax()).transpose().format(CleanFmt) << std::endl
 			<< "\n";
 		std::cout
 			<< "************************  COMPUTATION DETAILS  *************************\n";
@@ -142,6 +151,15 @@ namespace msl {
 		master_sort_ = master_solv_->sorted_;
 		if (slave_sort_ == nullptr || master_sort_ == nullptr)
 			throwException("configContact", "ensemble unsorted");
+		cm_ = std::make_shared<ContactManager>(master_sort_, slave_sort_, dp_, dp_, dt_);
+		cm_->setForceParams(dp_ * dp_ * dp_, 2.0*pow(10, 11)); // needs modification
+	}
+
+	void MetaSolver::createScene(ObjInfo master, ObjInfo slave, DomainConfig domain_config) {
+		slave_solv_->createEnsemble(slave, domain_config);
+		master_solv_->createEnsemble(master, domain_config);
+		setDomainConfig(domain_config);
+		dp_ = master.dp;
 	}
 
 	void MetaSolver::configRun(double dt, double total_time, int sv_step) {
@@ -152,6 +170,18 @@ namespace msl {
 		t_cur_ = 0.0;
 		timestep_ = 0;
 		sim_time_ = constant_timestep_ ? (int(T_ / dt_) + 1) * dt_ : (int(T_ / t_intv_) + 1) * t_intv_;
+		slave_solv_->configRun(dt, total_time, sv_step);
+		master_solv_->configRun(dt, total_time, sv_step);
+	}
+
+	void MetaSolver::addConfinedRegions(std::vector<std::shared_ptr<Shape>> regions) {
+		for (int i = 0; i < regions.size(); i++)
+			slave_solv_->configPosConstraint(regions[i]);
+	}
+
+	void MetaSolver::addConfinedRegionsComplement(std::vector<std::shared_ptr<Shape>> regions) {
+		for (int i = 0; i < regions.size(); i++)
+			slave_solv_->configPosConstraintComplement(regions[i]);
 	}
 
 	void MetaSolver::run() {
@@ -164,6 +194,7 @@ namespace msl {
 		std::cout
 			<< "Current time: " << theWatch().getDayTime()
 			<< "    Date: " << theWatch().getDate() << "\n";
+		sv_count_ = 0;
 		if (constant_timestep_) {
 			for (; timestep_ <= int(T_ / dt_); timestep_++) {
 				if (timestep_ % sv_step_ == 0) {
@@ -174,15 +205,15 @@ namespace msl {
 				theWatch().startTimer("run");
 				verletUpdate();
 				if (timestep_ % 10 == 0)
-					std::cout << "Timestep:\t" << timestep_ << "\t\t" << theWatch().stopAndFormat("run") << std::endl;
+					std::cout << "(Constant) Timestep:\t" << timestep_ << "\t\t" << theWatch().stopAndFormat("run") << std::endl;
 			}
 			saveVtk();
-			std::cout << " SaveVtk " << sv_count_ << std::endl;
+			std::cout << " SaveVtk " << sv_count_ << " finished! " << std::endl;
 
 		}
 		else {
 			int cnt = int(T_ / t_intv_);
-			for (int i = 0; i <= cnt; i++) {
+			for (; timestep_ <= cnt; timestep_++) {
 				saveVtk();
 				std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
 					<< "\t" << std::endl;
@@ -190,7 +221,10 @@ namespace msl {
 					theWatch().startTimer("run");
 					verletUpdate();
 					if (timestep_ % 10 == 0)
-						std::cout << "Timestep:\t" << timestep_ << "\t\t" << theWatch().stopAndFormat("run") << std::endl;
+						std::cout << "(Variable) Timestep:\t" << timestep_  << " cur/intv: "
+						<< t_cur_/t_intv_ 
+						<< "\t\t" << theWatch().stopAndFormat("run") << std::endl;
+					t_cur_ += cm_->getDt();
 				}
 				t_cur_ = 0.0;
 			}
@@ -204,10 +238,11 @@ namespace msl {
 		saveVtkSlave();
 		saveVtkMaster();
 		saveVtkAll();
+		sv_count_++;
 	}
 
 	void MetaSolver::saveVtkAll() {
-		std::string inner_folder = folder_ + "\\" + filename_;
+		std::string inner_folder = folder_ + "\\" + filename_ + "_All";
 		std::string vtkname = filename_ + "_All_" + std::to_string(sv_count_) + ".vtk";
 		int s_np = slave_solv_->np_;
 		int m_np = master_solv_->np_;
@@ -241,9 +276,9 @@ namespace msl {
 
 		file << "VECTORS Acc double\n";
 		for (int i = 0; i < s_np; i++)
-			file << slave_solv_->acc_[i].format(PureFmt) << "\n";
+			file << slave_solv_->stack_[i].format(PureFmt) << "\n";
 		for (int i = 0; i < m_np; i++)
-			file << master_solv_->acc_[i].format(PureFmt) << "\n";
+			file << master_solv_->stack_[i].format(PureFmt) << "\n";
 	}
 
 	void MetaSolver::saveVtkSlave() {
@@ -255,15 +290,24 @@ namespace msl {
 	}
 
 	void MetaSolver::verletUpdate() {
+		slave_sort_->makeSortPartial();
+		master_sort_->makeSortPartial();
+		//std::cout << "compute contact..\n";
 		cm_->updateContactZone();
 		cm_->computeContact();
+		//std::cout << "compute contact done!\n";
 		if (!constant_timestep_) {
 			dt_ = cm_->getDt();
 			slave_solv_->setDt(dt_);
 			master_solv_->setDt(dt_);
 		}
-		slave_solv_->verletUpdate();
+		//std::cout << "updating master..\n";
 		master_solv_->verletUpdate();
+		//std::cout << "master updated!\n";
+		//std::cout << "updating slave..\n";
+		slave_solv_->verletUpdate();
+		//std::cout << "slave updated!\n"; 
+		
 	}
 	void MetaSolver::configIO(std::string folder, std::string filename, 
 		std::string slave, std::string master) {
@@ -271,14 +315,9 @@ namespace msl {
 		master_solv_->configIO(folder, filename + "_" + master);
 		folder_ = folder;
 		filename_ = filename;
-		std::string inner_folder = folder_ + "\\" + filename_;
-		slave_name_ = slave;
-		master_name_ = master;
-		s_scalar_saves_ = slave_solv_->scalar_saves_;
-		s_vector_saves_ = slave_solv_->vector_saves_;
-		m_scalar_saves_ = master_solv_->scalar_saves_;
-		m_vector_saves_ = master_solv_->vector_saves_;
-		CreateDirectory(std::wstring(folder_.begin(), folder_.end()).c_str(), NULL);
+		std::string inner_folder = folder_ + "\\" + filename_ + "_All";
 		CreateDirectory(std::wstring(inner_folder.begin(), inner_folder.end()).c_str(), NULL);
+		slave_name_ = slave;
+		master_name_ = master;		
 	}
 }

@@ -1,12 +1,10 @@
-#include "m_types.h"
+
 #include <iostream>
-#include "m_shape.h"
-#include <memory>
 #include <unsupported/Eigen/MatrixFunctions>
 #include "u_timer.h"
-#include "m_neighborhood_test.h"
-#include "m_meshfree_solver.h"
-
+//#include "m_neighborhood_test.h"
+//#include "m_meshfree_solver.h"
+#include "m_collision_plate.h"
 using namespace std;
 using namespace msl;
 
@@ -22,6 +20,7 @@ int main() {
 		std::cerr << e.what() << std::endl;
 	}*/
 	try {
+		/*
 		DomainConfig cfg(-2.0*Vec3d::Ones(), 2.0*Vec3d::Ones(), 0.2);
 		std::shared_ptr<MeshfreeSolver> solver = std::make_shared<MeshfreeSolver>();
 		solver->setParams(0.2, 20, false);
@@ -30,8 +29,26 @@ int main() {
 		solver->configRunParams("F:\\newM4", "jh2_model", 0.0001, 2.0);
 		solver->configSolver("pd_jh2", "");
 		solver->setJH2Params(2);
-		solver->run();
-
+		solver->run();*/
+		Vec3d cmin = Vec3d::Zero();
+		Vec3d cmax = Vec3d::Zero();
+		for (int i = 0; i < 100; i++) {
+			Vec3d temp = i * Vec3d::Ones();
+			cmin = cmin.cwiseMin(temp);
+			cmax = cmax.cwiseMax(temp);
+		}
+		std::cout << "cmin: " << cmin.format(PureFmt) << std::endl;
+		std::cout << "cmax: " << cmax.format(PureFmt) << std::endl;
+		
+		msl::ObjInfo pt("sphere", Vec3d{ 0.00075, 0.00075, 0.00075 }, "rigid", 0.0002, 
+			8500, Vec3d{ 0, 0, -150 }, Vec3d{ 0, 0, 0.00125 });
+		msl::ObjInfo targ("rectangle", Vec3d{ 0.02,0.02,0.001 }, "kl", 0.0002, 2200, Vec3d{ 0, 0, 0 });
+		DomainConfig cfg(Vec3d{-0.02, -0.02, -0.01}, Vec3d{ 0.02, 0.02, 0.01 }, 0.001);
+		std::string folder = "F:\\newM4";
+		std::string file = "contact";
+		CollisionPlate cp(pt, targ, cfg, folder, file, 8 * pow(10, -8), 5 * pow(10, -6), 3);
+		cp.run();
+		
 	}
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;

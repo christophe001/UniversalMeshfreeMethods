@@ -22,15 +22,16 @@
 #endif // _DEBUG_
 namespace msl {
 	StateBasedPD::StateBasedPD(std::shared_ptr<SortEnsemble> sorted,
-		std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh) 
+		std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh, double dt) 
 		: LagrangianCompute::LagrangianCompute(sorted) {
 		//LagrangianCompute::computeBond();
 		nbh_ = nbh;
 		pnbh_ = pbh;
 		shape_tensor_		= ensemble_ptr_->getTensorAttrPtr("shape_tensor")->getAttr();
 		deformation_		= ensemble_ptr_->getTensorAttrPtr("deformation")->getAttr();
-		deformation_dot_	= ensemble_ptr_->getTensorAttrPtr("deformation_dot")->getAttr();
 		tau_				= ensemble_ptr_->getTensorAttrPtr("tau")->getAttr();
+		if (ensemble_ptr_->hasTensorAttribute("deformation_dot"))
+			deformation_dot_ = ensemble_ptr_->getTensorAttrPtr("deformation_dot")->getAttr();
 		if (ensemble_ptr_->hasTensorAttribute("deformation_last"))
 			deformation_last_ = ensemble_ptr_->getTensorAttrPtr("deformation_last")->getAttr();
 		if (ensemble_ptr_->hasTensorAttribute("rotation"))
@@ -55,6 +56,12 @@ namespace msl {
 		i_p_ = 2;
 		shape_calc_ = false;
 		class_name_ = "StateBasedPD";
+		dt_ = dt;
+		dp_ = sorted->getEnsemble()->getDp();
+		rho_ = sorted->getEnsemble()->getDensity();
+		horizon_ = dp_ * 3.5;
+
+
 	}
 
 	StateBasedPD::StateBasedPD(std::shared_ptr<ComputeNeighbor> cpn)
@@ -115,7 +122,8 @@ namespace msl {
 			int j = nbl_[it];
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			double d = xi.norm();
-			deformation_[i] += influence(d) * xi * xi.transpose() * volumeCorrector(d) * dv_;
+
+			deformation_[i] += influence(d) * xi * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -125,7 +133,7 @@ namespace msl {
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			Vec3d eta = pos_[dict_[j]] - pos_[dict_[i]];
 			double d = xi.norm();
-			deformation_[i] += influence(d) * eta * xi.transpose() * volumeCorrector(d) * dv_;
+			deformation_[i] += influence(d) * eta * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -135,7 +143,7 @@ namespace msl {
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			Vec3d eta_dot = vel_[dict_[j]] - vel_[dict_[i]];
 			double d = xi.norm();
-			deformation_dot_[i] += influence(d) * eta_dot * xi.transpose() * volumeCorrector(d) * dv_;
+			deformation_dot_[i] += influence(d) * eta_dot * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -178,8 +186,8 @@ namespace msl {
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
-			for (int i = 0; i < np_; i++)
-				shape_tensor_[i] = deformation_[i].inverse();
+			for (int i = 0; i < np_; i++) 
+				shape_tensor_[i] = deformation_[i].inverse();	
 #ifdef _DEBUG_
 			std::uniform_int_distribution<> dis(0, np_ - 1);
 			std::default_random_engine re;

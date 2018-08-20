@@ -68,19 +68,21 @@ namespace msl {
 
 	public:
 		//*********************************************************************
-		//							Run scheme
-		//---------------------------------------------------------------------
-		//! a. Create ensemble/solver (to be defined in derived class)
-		//! b. setDomainConfig.
-		//! c. configMeshfreeSolver.
-		//! d. configContact.
-		//! e. configIO.
-		//! f. configRun.
-		//! g. run:
-		//!		1. print summary.
-		//!		2. verlet update.
-		//!		3. save vtk.
-		MetaSolver();
+		//							Running routine
+		//*********************************************************************
+		// 1. MetaSolver(const_timesetp, enable_relax, rc_param)
+		// 2. configIO()
+		// 3. configRun()
+		// 4. createScene()
+		// 5. configContact()
+		// 6. conditions
+		///   setInitVel()
+		///   configPosConstraint(shape)				
+		///   configExternalPosForce(shape, vec)
+		///   configExternalInitPosForce(shape, vec)
+		// 7. run()
+		
+		MetaSolver(bool ct = true, bool er = false, double rc = 0.0);
 		virtual ~MetaSolver() {}
 		void setDomainConfig(const DomainConfig& domain_config) { domain_config_ = domain_config; }
 		void printLabel() const;
@@ -89,7 +91,10 @@ namespace msl {
 		virtual void configMeshfreeSolver(std::string slav_lc, std::string slav_ec, std::vector<std::string> slav_attrs,
 		std::string master_lc, std::string master_ec, std::vector<std::string> master_attrs);
 		virtual void configContact();
+		void createScene(ObjInfo master, ObjInfo slave, DomainConfig domain_config);
 		void configRun(double dt, double total_time, int sv_step);
+		void addConfinedRegions(std::vector<std::shared_ptr<Shape>> regions);
+		void addConfinedRegionsComplement(std::vector<std::shared_ptr<Shape>> regions);
 		void run();
 		void saveVtk();
 		void saveVtkAll();
@@ -97,7 +102,7 @@ namespace msl {
 		void saveVtkMaster();
 		void verletUpdate();
 		void configIO(std::string folder, std::string filename,
-			std::string slave = "object", std::string master = "target");
+			std::string slave = "target", std::string master = "projectile");
 	};
 }
 

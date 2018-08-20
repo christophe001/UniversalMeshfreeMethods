@@ -78,9 +78,6 @@
     <ClCompile Include="m_neighborhood_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="m_contact_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="m_meta_solver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -94,6 +91,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="m_rigid_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_model_vtk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -164,9 +164,6 @@
     <ClInclude Include="m_neighborhood_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="m_contact_test.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="m_meta_solver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -180,6 +177,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="m_rigid_body.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_solver_factory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_model_vtk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

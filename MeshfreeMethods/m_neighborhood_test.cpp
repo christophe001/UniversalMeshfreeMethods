@@ -43,7 +43,7 @@ namespace msl {
 		sattr.push_back("within");
 		creator_->addScalarAttributes(sattr);
 		creator_->setDims(dims_);
-		creator_->setDp(dp_);
+		creator_->setDpActual(dp_);
 		creator_->create();
 		creator_->setScalarAttributeConstant("within", 0.1);
 		ensemble_ = creator_->getEnsemble();
@@ -119,7 +119,7 @@ namespace msl {
 		sattr.push_back("within");
 		creator_->addScalarAttributes(sattr);
 		creator_->setDims(dims_);
-		creator_->setDp(dp_);
+		creator_->setDpActual(dp_);
 		creator_->create();
 		creator_->setScalarAttributeConstant("within", 0.1);
 		ensemble_ = creator_->getEnsemble();

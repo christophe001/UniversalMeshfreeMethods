@@ -22,13 +22,16 @@
 constexpr auto theWatch = msl::Timer::instance;
 
 namespace msl {
-	MeshfreeBase::MeshfreeBase(bool const_ts, bool enable_rx, double rc) 
-		: constant_timestep_(const_ts), relaxation_(enable_rx), rc_(rc) {
+	MeshfreeBase::MeshfreeBase(double h2dp, bool const_ts, bool enable_rx, double rc) 
+		: horizon_ratio_(h2dp), constant_timestep_(const_ts), relaxation_(enable_rx), rc_(rc) {
 		class_name_ = "MeshfreeBase";
+		sv_step_ = 1;
+		sv_count_ = 0;
 	}
 
-	void MeshfreeBase::createEnsemble(ObjInfo obj, DomainConfig domain_config, std::vector<AttributeInfo>& infos) {
+	void MeshfreeBase::createEnsemble(ObjInfo obj, DomainConfig domain_config) {
 		dp_ = obj.dp;
+		horizon_ = dp_ * horizon_ratio_;
 		density_ = obj.density;
 		std::cout
 			<< "*************************  CREATING ENSEMBLE  **************************\n"
@@ -37,6 +40,8 @@ namespace msl {
 		std::vector<std::string> sas;
 		std::vector<std::string> vas;
 		std::vector<std::string> tas;
+		AttributesGen gen(obj);
+		auto infos = gen.getAttrs();
 		for (auto info : infos) {
 			if (info.m_attr_type == "scalar") {
 				sas.push_back(info.m_name);
@@ -87,6 +92,7 @@ namespace msl {
 			}
 		}
 		ensemble_ = creator_->getEnsemble();
+		ensemble_->calcBox();
 		pos_ = ensemble_->getPos();
 		vel_ = ensemble_->getVel();
 		acc_ = ensemble_->getAcc();
@@ -109,6 +115,7 @@ namespace msl {
 		sorted_->setDomainConfig(domain_config_);
 		sorted_->makeSortFull(true);
 		std::cout << "sorting completed!\n\n";
+		configSolver(obj.solver);
 		setInitVel(obj.velocity);
 	}
 
@@ -148,6 +155,8 @@ namespace msl {
 			<< "*************************  ENSEMBLE INFOMATION  ************************\n"
 			<< "Total particles: " << np_ << std::endl
 			<< "Inter-particle distance: " << dp_ << std::endl
+			<< "Pos min: " << (ensemble_->getPosMin()).format(PureFmt) << std::endl
+			<< "Pos max: " << (ensemble_->getPosMax()).format(PureFmt) << std::endl
 			<< "\n";
 		std::cout
 			<< "************************  COMPUTATION DETAILS  *************************\n";
@@ -191,8 +200,12 @@ namespace msl {
 		}
 	}
 
-	void MeshfreeBase::addPosConstraint(std::shared_ptr<Shape> shape) {
+	void MeshfreeBase::configPosConstraint(std::shared_ptr<Shape> shape) {
 		confined_regions_.push_back(shape);
+	}
+
+	void MeshfreeBase::configPosConstraintComplement(std::shared_ptr<Shape> shape) {
+		confined_regions_complement_.push_back(shape);
 	}
 
 	void MeshfreeBase::addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force) {
@@ -291,6 +304,19 @@ namespace msl {
 				}
 			}
 		}
+		if (!confined_regions_complement_.empty()) {
+			Vec3d * ipos = ensemble_->getVectorAttrPtr("initial_position")->getAttr();
+			for (auto shape : confined_regions_complement_) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+				for (int i = 0; i < np_; i++) {
+					if (!shape->isWithin(ipos[i])) {
+						pos_[dict_[i]] = ipos[i];
+					}
+				}
+			}
+		}
 		initForces();
 		if (l_compute_ != nullptr)
 			l_compute_->computeForces();
@@ -312,6 +338,7 @@ namespace msl {
 			stack_[i] = acc_[i];
 			acc_[i] = Vec3d::Zero();
 		}
+		//ensemble_->calcBox();
 	}
 
 	void MeshfreeBase::saveVtk() {
@@ -340,6 +367,10 @@ namespace msl {
 				file << sa->getAttr()[i] << "\n";
 		}
 
+		file << "VECTORS cell_id double\n";
+		for (int i = 0; i < np_; i++) 
+			file << domain_config_.getCellNum(pos_[i]).format(PureFmt) << "\n";
+			
 		file << "VECTORS Vel double\n";
 		for (int i = 0; i < np_; i++) {
 			file << vel_[i].format(PureFmt) << "\n";
@@ -347,7 +378,7 @@ namespace msl {
 
 		file << "VECTORS Acc double\n";
 		for (int i = 0; i < np_; i++) {
-			file << acc_[i].format(PureFmt) << "\n";
+			file << stack_[i].format(PureFmt) << "\n";
 		}
 
 		for (auto&& s : vector_saves_) {
@@ -356,8 +387,8 @@ namespace msl {
 			for (int i = 0; i < np_; i++)
 				file << va->getAttr()[i].format(PureFmt) << "\n";
 		}
-		file.close();
 		sv_count_++;
+		file.close();
 	}
 
 	void MeshfreeBase::configIO(std::string folder, std::string filename) {
@@ -389,6 +420,7 @@ namespace msl {
 		std::cout
 			<< "Current time: " << theWatch().getDayTime()
 			<< "    Date: " << theWatch().getDate() << "\n";
+		sv_count_ = 0;
 		if (constant_timestep_) {
 			for (; timestep_ <= int(T_/dt_); timestep_++) {
 				if (timestep_ % sv_step_ == 0) {
@@ -407,7 +439,7 @@ namespace msl {
 		}
 		else {
 			int cnt = int(T_ / t_intv_);
-			for (int i = 0; i <= cnt; i++) {
+			for (; timestep_ <= int(T_ / dt_); timestep_++) {
 				saveVtk();
 				std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
 					<< "\t" << std::endl;
@@ -423,5 +455,41 @@ namespace msl {
 			std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
 				<< "\t" << std::endl;
 		}
+	}
+
+	std::vector<AttributeInfo> AttributesGen::getAttrs() {
+		if (obj_.solver == "rigid")
+			return getRigid();
+		if (obj_.solver == "kl")
+			return getStateKL();
+
+	}
+
+	std::vector<AttributeInfo> AttributesGen::getRigid() {
+		return std::vector<AttributeInfo>{AttributeInfo("vector", "initial_position", true, "pos")};
+	}
+
+	std::vector<AttributeInfo> AttributesGen::getStateKL(){
+		auto attrs = std::vector<AttributeInfo>();
+		typedef AttributeInfo MyAttr;
+		attrs.push_back(MyAttr("tensor", "deformation", false, "identity"));
+		attrs.push_back(MyAttr("tensor", "deformation_last", false, "identity"));
+		attrs.push_back(MyAttr("tensor", "shape_tensor", false, "zero"));
+		attrs.push_back(MyAttr("tensor", "deformation_dot", false, "zero"));
+		attrs.push_back(MyAttr("tensor", "hencky", false, "zero"));
+		//attrs.push_back(MyAttr("tensor", "rotation", false, "zero"));
+		//attrs.push_back(MyAttr("tensor", "left_stretch", false, "zero"));
+		//attrs.push_back(MyAttr("tensor", "left_stretch", false, "zero"));
+		//attrs.push_back(MyAttr("tensor", "left_stretch_dot", false, "zero"));
+		//attrs.push_back(MyAttr("tensor", "d", false, "zero"));
+		attrs.push_back(MyAttr("tensor", "tau", false, "zero"));
+		attrs.push_back(MyAttr("vector", "initial_position", true, "pos"));
+		attrs.push_back(MyAttr("scalar", "density", true, "constant", obj_.density));
+		attrs.push_back(MyAttr("scalar", "pressure", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "damage", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "delta_p", false, "zero"));
+		attrs.push_back(MyAttr("scalar", "theta_e", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "theta_p", true, "zero"));
+		return attrs;
 	}
 }

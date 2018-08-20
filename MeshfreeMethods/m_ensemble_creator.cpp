@@ -201,8 +201,9 @@ namespace msl {
 			for (int i = 0; i < nums[0]; i++) {
 				for (int j = 0; j < nums[2]; j++) {
 					Vec3d pos = Vec3d(double(i) * dp_, 0.0, double(j) * dp_) - origin;
-					if (shape_->isWithin(pos))
+					if (shape_->isWithin(pos)) {
 						cache_[cnt++] = rotation * pos + offset_;
+					}
 				}
 			}
 		}
@@ -211,8 +212,9 @@ namespace msl {
 				for (int j = 0; j < nums[1]; j++) {
 					for (int k = 0; k < nums[2]; k++) {
 						Vec3d pos = dp_ * Vec3d(double(i), double(j), double(k)) - origin;
-						if (shape_->isWithin(pos))
+						if (shape_->isWithin(pos)) {
 							cache_[cnt++] = rotation * pos + offset_;
+						}
 					}
 				}
 			}		 
@@ -227,6 +229,7 @@ namespace msl {
 			(ensemble_->vel_)[i] = Vec3d::Zero();
 		}
 		ensemble_->setDpDensity(dp_, density_);
+		ensemble_->calcBox();
 		if (ensemble_->hasVectorAttribute("Initial_position"))
 			setVectorAttribute("Initial_position", cache_);
 	}

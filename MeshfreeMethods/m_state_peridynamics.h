@@ -55,7 +55,7 @@ namespace msl {
 
 	public:
 		StateBasedPD(std::shared_ptr<SortEnsemble> sorted, 
-			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh_);
+			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh_, double dt = 0);
 
 		StateBasedPD(std::shared_ptr<ComputeNeighbor> cpn);
 		

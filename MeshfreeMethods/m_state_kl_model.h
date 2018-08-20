@@ -67,40 +67,40 @@ namespace msl {
 		void adoptKlog() { klog_ = true; }
 		void setDamageParams(double c1, double c2, double d1, double d2);
 		StateKLModel(std::shared_ptr<SortEnsemble> sorted,
-			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh);
+			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh, double dt = 0);
 		virtual ~StateKLModel() {}
 		//! Yield condition
-		double yield(Mat3d sigma, double theta_p, double damage) const;
-		double checkYield(Mat3d h_tr, Mat3d sigma, double J, double theta_e,
-			double theta_p, double p, double damage, double dgamma) const;
-		double pc(double theta_p) const;
-		double qc(double pm) const;
-		double qf(double pc) const;
+		double yield(const Mat3d& sigma, const double& theta_p, const double& damage) const;
+		double checkYield(const Mat3d& h_tr, const Mat3d& sigma, const double& J, const double& theta_e,
+			const double& theta_p, const double& p, const double& damage, const double& dgamma) const;
+		double pc(const double& theta_p) const;
+		double qc(const double& pm) const;
+		double qf(const double& pc) const;
 		//! Elastic response
-		double shear(double theta_e, double theta_p) const;
-		double dshear(double theta_e, double theta_p) const;
-		double Jp(double theta_e, double theta_p) const;
+		double shear(const double& theta_e, const double& theta_p) const;
+		double dshear(const double& theta_e, const double& theta_p) const;
+		double Jp(const double& theta_e, const double& theta_p) const;
 		//! Damage evolution
-		double ddamage(double damage, Mat3d sigma) const;
-		double zeta(double p, double theta_p, double damage) const;
+		double ddamage(const double& damage, const Mat3d& sigma) const;
+		double zeta(const double& p, const double& theta_p, const double& damage) const;
 		//! Function
-		double heaviside(double a) const { return a > 0.0 ? 1.0 : 0.0; }
-		Mat3d  dev(Mat3d m) const;
-		double cbar(double b_s, double b_t) const;
-		double ctilde(double b_s, double b_t) const;
+		double heaviside(const double& a) const { return a > 0.0 ? 1.0 : 0.0; }
+		Mat3d  dev(const Mat3d& m) const;
+		double cbar(const double& b_s, const double& b_t) const;
+		double ctilde(const double& b_s, const double& b_t) const;
 		//! Return updates based on dgamma
-		std::pair<double,double> actualTheta( double dgamma, double p, double theta_e_tr,
-			double theta_p, double damage) const;
-		std::pair<Mat3d, Mat3d> actualSigmaHencky(Mat3d h_tr, double J, double dgamma, double theta_e, 
-			double theta_p, double p, double damage) const;
-		double actualDamage(Mat3d sigma, double dgamma, double damage) const;
+		std::pair<double,double> actualTheta(const double& dgamma, const double& p, const double& theta_e_tr,
+			const double& theta_p, const double& damage) const;
+		std::pair<Mat3d, Mat3d> actualSigmaHencky(const Mat3d& h_tr, const double& J, const double& dgamma, 
+			const double& theta_e, const double& theta_p, const double& p, const double& damage) const;
+		double actualDamage(const Mat3d& sigma, const double& dgamma, const double& damage) const;
 		//! trial functions
-		Mat3d trialHencky(Mat3d f_last, Mat3d f, Mat3d b_e) const;
-		Mat3d trialSigma(Mat3d hencky, double J, double theta_e, 
-			double theta_p, double p, double damage) const;
+		Mat3d trialHencky(const Mat3d& f_last, const Mat3d& f, const Mat3d& b_e) const;
+		Mat3d trialSigma(const Mat3d& hencky, const double& J, const double& theta_e,
+			const double& theta_p, const double& p, const double& damage) const;
 		//! Lagrangian multiplier calculation
-		Vars dgamma(Mat3d sigma, Mat3d hencky, Mat3d f_last, Mat3d f, double J, 
-			double theta_e, double theta_p, double damage) const;
+		Vars dgamma(const Mat3d& sigma, const Mat3d& hencky, const Mat3d& f_last, const Mat3d& f,
+			const double& theta_e, const double& theta_p, const double& damage) const;
 	};
 }
 

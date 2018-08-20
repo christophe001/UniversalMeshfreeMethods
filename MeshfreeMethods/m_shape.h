@@ -24,12 +24,12 @@
 namespace msl {
 	class Shape : public MsObj {
 	protected:
-		std::string	name_;
 		Vec3d		orientation_;
 		double		theta_;
 		Mat3d		rotation_;
 		bool		shape2d_;
 	public:
+		std::string	name_;
 		Shape();
 		virtual ~Shape() {}
 		void setOrientation(const Vec3d& dir, const double& theta = 0);

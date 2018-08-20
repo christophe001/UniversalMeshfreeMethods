@@ -200,7 +200,6 @@
     <ClCompile Include="m_collision_plate.cpp" />
     <ClCompile Include="m_compute_neighborhood.cpp" />
     <ClCompile Include="m_contact_manager.cpp" />
-    <ClCompile Include="m_contact_test.cpp" />
     <ClCompile Include="m_domain_config.cpp" />
     <ClCompile Include="m_ensemble.cpp" />
     <ClCompile Include="m_ensemble_attribute.cpp" />
@@ -210,6 +209,7 @@
     <ClCompile Include="m_meshfree_base.cpp" />
     <ClCompile Include="m_meshfree_solver.cpp" />
     <ClCompile Include="m_meta_solver.cpp" />
+    <ClCompile Include="m_model_vtk.cpp" />
     <ClCompile Include="m_neighborhood_data.cpp" />
     <ClCompile Include="m_neighborhood_test.cpp" />
     <ClCompile Include="m_obj.cpp" />
@@ -228,7 +228,6 @@
     <ClInclude Include="m_collision_plate.h" />
     <ClInclude Include="m_compute_neighborhood.h" />
     <ClInclude Include="m_contact_manager.h" />
-    <ClInclude Include="m_contact_test.h" />
     <ClInclude Include="m_domain_config.h" />
     <ClInclude Include="m_ensemble.h" />
     <ClInclude Include="m_ensemble_attribute.h" />
@@ -239,6 +238,7 @@
     <ClInclude Include="m_meshfree_base.h" />
     <ClInclude Include="m_meshfree_solver.h" />
     <ClInclude Include="m_meta_solver.h" />
+    <ClInclude Include="m_model_vtk.h" />
     <ClInclude Include="m_neighborhood_data.h" />
     <ClInclude Include="m_neighborhood_test.h" />
     <ClInclude Include="m_obj.h" />
@@ -246,6 +246,7 @@
     <ClInclude Include="m_rigid_body.h" />
     <ClInclude Include="m_self_contact_manager.h" />
     <ClInclude Include="m_shape.h" />
+    <ClInclude Include="m_solver_factory.h" />
     <ClInclude Include="m_sort_ensemble.h" />
     <ClInclude Include="m_state_pd_jh2.h" />
     <ClInclude Include="m_state_peridynamics.h" />

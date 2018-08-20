@@ -28,6 +28,7 @@ namespace msl {
 		std::shared_ptr<Ensemble>		ensemble_s_;
 		std::shared_ptr<Ensemble>		ensemble_m_;
 		double							epsilon_;
+		double							dp_;
 		double							dt_;
 		double							dt_max_;
 		Vec3d							contact_pmin_;
@@ -40,13 +41,13 @@ namespace msl {
 		Vec3d*							mvel_;
 		Vec3d*							sacc_;
 		Vec3d*							macc_;
-		DomainConfig*					domain_cfg_;
+		DomainConfig					domain_cfg_;
 		double							dv_;
 		double							force_const_;
 
 	public:
 		ContactManager(std::shared_ptr<SortEnsemble> master,
-			std::shared_ptr<SortEnsemble> slave, double epsilon, double dt);
+			std::shared_ptr<SortEnsemble> slave, double epsilon, double dp, double dt);
 		void setEpsilonDtMax(const double& epsilon, const double& dt_max);
 		void setForceParams(const double& dv, const double& fc) { dv_ = dv; force_const_ = fc; }
 
