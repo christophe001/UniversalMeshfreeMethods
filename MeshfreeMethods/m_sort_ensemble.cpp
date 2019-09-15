@@ -42,8 +42,15 @@ namespace msl {
 			try {
 				cells_ = new uint64_t[np_];
 				new_order_ = new int[np_];
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+				for (int i = 0; i < np_; i++)
+					new_order_[i] = i;
+
 				int sz = tensor_attrs_.size() == 0 ? sizeof(Vec3d) : sizeof(Mat3d);
-				sort_stack_ = new unsigned char[np_ * sz];
+				long mem = long(sz) * long(np_);
+				sort_stack_ = new unsigned char[mem];
 			}
 			catch (std::bad_alloc) {
 				throwException("Constructor", "Error occured while allocating memory");
@@ -97,7 +104,7 @@ namespace msl {
 #endif // _WITH_OMP_
 		for (int i = 0; i < np_; i++) {
 			id_[i] = i;
-			dict_[i] = i;
+			dict_[i] = i;		//! given particle id, find its offset in memory
 		}
 	}
 

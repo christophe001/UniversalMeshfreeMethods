@@ -23,7 +23,7 @@
 namespace msl {
 	class StateBasedPD : public LagrangianCompute {
 	protected:
-		Mat3d*		shape_tensor_;
+		Mat3d*		shape_tensor_;		//! actually inverse of shape tensor
 		Mat3d*		deformation_;
 		Mat3d*		deformation_last_;
 
@@ -35,14 +35,19 @@ namespace msl {
 		Mat3d*		left_stretch_dot_;
 		Mat3d*		tau_;				//! cauchy stress
 
-		Vec3d*		init_pos_;
+		Vec3d*		init_pos_;			//! initial positions
 
-		double*		density_;
+		double*		density_;			//! density of particle
+		double*     damage_;			//! damage parameter(damage1, optional)
+		double*		damage_all_;		//! damage parameter(all damage)
+		bool		damage_enabled_;
 		//double*		bond_length_;
 		double*		lambda_;			//! lame parameters
 		double*		mu_;				//! lame parameters
 		int*		nbl_;
 		double		horizon_;
+		double		force_const_;
+		double		epsilon_;
 		int			np_;
 		double		i_epsilon_;			//! influence function parameters			
 		double		i_p_;				//! w(xi) = 1/(|xi|+i_epsilon)^i_p_
@@ -55,7 +60,8 @@ namespace msl {
 
 	public:
 		StateBasedPD(std::shared_ptr<SortEnsemble> sorted, 
-			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh_, double dt = 0);
+			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh_,
+			double h2dp = 3.5, double dt = 0, bool damage = true);
 
 		StateBasedPD(std::shared_ptr<ComputeNeighbor> cpn);
 		
@@ -66,6 +72,10 @@ namespace msl {
 		void configParams(double horizon, double dp, double dt, double rho = 1000);
 		
 		double influence(double d) { return pow(d + i_epsilon_, -i_p_); }
+
+		double correction(int i, int j) { 
+			return (!damage_enabled_ || (damage_[i] < 0.99 && damage_[j] < 0.99))? 1.0 : 0.0; 
+		}
 		
 		double volumeCorrector(double d);
 		

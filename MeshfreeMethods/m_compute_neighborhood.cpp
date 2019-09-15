@@ -226,7 +226,7 @@ namespace msl {
 	/// Compute neighborhood
 	//==============================================================================
 	void ComputeNeighbor::computeNeighbor() {
-		int tcells = (sorted_ptr_->getOutNp() == 0) ? total_cells_ : total_cells_ - 1;
+		long tcells = (sorted_ptr_->getOutNp() == 0) ? total_cells_ : total_cells_ - 1;
 		int* nl = nbh_->neighborhood_list_;
 		long* sp = nbh_->start_positions_;
 		int* bc = nbh_->bond_count_;
@@ -267,13 +267,14 @@ namespace msl {
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
 #endif // _WITH_OMP
-		for (int cid = 0; cid < tcells; cid++) {
+		for (long cid = 0; cid < tcells; cid++) {
 			Vec3i cell = sorted_ptr_->getCellNum(cid);
 			std::vector<SortEnsemble::CellIt> nb_list = sorted_ptr_->getAllAdjacentCells(cell);
 			for (int i = sorted_ptr_->begin(cid); i < sorted_ptr_->end(cid); i++) {
 				for (int j = sorted_ptr_->begin(cid); j < sorted_ptr_->end(cid); j++) {
 					if (i != j && (pos_[i] - pos_[j]).norm() < 0.9999 * horizon_) {
-						nl[sp[i] + bc[i]] = j;
+						long os = sp[i] + (long)bc[i];
+						nl[os] = j;
 						bc[i]++;
 					}
 				}
@@ -281,7 +282,8 @@ namespace msl {
 					for (auto&& nb : nb_list) {
 						for (int j = sorted_ptr_->begin(nb); j < sorted_ptr_->end(nb); j++)
 							if ((pos_[i] - pos_[j]).norm() < 0.9999 * horizon_) {
-								nl[sp[i] + bc[i]] = j;
+								long os = sp[i] + (long)bc[i];
+								nl[os] = j;
 								bc[i]++;
 							}
 					}

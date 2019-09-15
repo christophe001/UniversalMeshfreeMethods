@@ -71,6 +71,23 @@ namespace msl {
 		pnbh_ = cpn_->getPeriNeighborData();
 	}
 
+	void LagrangianCompute::enforceNoSlip(const Vec3d & center, const Vec3d & vel, 
+		const Vec3d & acc, double eps) {
+		if (damage_ == nullptr && !ensemble_ptr_->hasScalarAttribute("damage"))
+			throwException("enforceNoSlip", "No damage variable found!");
+		damage_ = ensemble_ptr_->getScalarAttrPtr("damage")->getAttr();
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++) {
+			Vec3d eta = center - pos_[dict_[i]];
+			if (damage_[i] > 0.99 && eta.norm() < eps) {
+				acc_[dict_[i]] = acc;
+				vel_[dict_[i]] = vel;
+			}
+		}
+	}
+
 	void LagrangianCompute::compute(fpn fun1, fpnpb fun2) {
 		if (domain_cfg_ == 0)
 			throwException("compute", "fatal error");

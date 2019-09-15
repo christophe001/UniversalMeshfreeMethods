@@ -146,7 +146,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>MinSpace</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -200,6 +200,8 @@
     <ClCompile Include="m_collision_plate.cpp" />
     <ClCompile Include="m_compute_neighborhood.cpp" />
     <ClCompile Include="m_contact_manager.cpp" />
+    <ClCompile Include="m_contact_manager_rigid_body.cpp" />
+    <ClCompile Include="m_sphere_rigid_body.cpp" />
     <ClCompile Include="m_domain_config.cpp" />
     <ClCompile Include="m_ensemble.cpp" />
     <ClCompile Include="m_ensemble_attribute.cpp" />
@@ -228,6 +230,8 @@
     <ClInclude Include="m_collision_plate.h" />
     <ClInclude Include="m_compute_neighborhood.h" />
     <ClInclude Include="m_contact_manager.h" />
+    <ClInclude Include="m_contact_manager_rigid_body.h" />
+    <ClInclude Include="m_sphere_rigid_body.h" />
     <ClInclude Include="m_domain_config.h" />
     <ClInclude Include="m_ensemble.h" />
     <ClInclude Include="m_ensemble_attribute.h" />

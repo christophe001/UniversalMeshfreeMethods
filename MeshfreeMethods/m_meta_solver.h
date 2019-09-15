@@ -18,6 +18,7 @@
 
 #include "m_meshfree_base.h"
 #include "m_contact_manager.h"
+#include "m_contact_manager_rigid_body.h"
 
 namespace msl {
 	
@@ -27,9 +28,12 @@ namespace msl {
 		std::shared_ptr<SortEnsemble>		slave_sort_;
 		std::shared_ptr<MeshfreeBase>		master_solv_;
 		std::shared_ptr<SortEnsemble>		master_sort_;
+		std::shared_ptr<ContactMngerSRB>	srb_cm_;
+		bool								use_srb_;
 		DomainConfig						domain_config_;
 		std::shared_ptr<ContactManager>		cm_;
-		double								dp_;
+		double								dp_s_, dp_m_;
+		ObjInfo								master_obj_, slave_obj_;
 
 		//*********************************************************************
 		//!							Run parameters
@@ -91,16 +95,19 @@ namespace msl {
 		virtual void configMeshfreeSolver(std::string slav_lc, std::string slav_ec, std::vector<std::string> slav_attrs,
 		std::string master_lc, std::string master_ec, std::vector<std::string> master_attrs);
 		virtual void configContact();
+		void configSRB();
 		void createScene(ObjInfo master, ObjInfo slave, DomainConfig domain_config);
 		void configRun(double dt, double total_time, int sv_step);
 		void addConfinedRegions(std::vector<std::shared_ptr<Shape>> regions);
 		void addConfinedRegionsComplement(std::vector<std::shared_ptr<Shape>> regions);
 		void run();
+		void runWithNoSlip();
 		void saveVtk();
 		void saveVtkAll();
 		void saveVtkSlave();
 		void saveVtkMaster();
 		void verletUpdate();
+		void verletUpdateWithNoSlip();
 		void configIO(std::string folder, std::string filename,
 			std::string slave = "target", std::string master = "projectile");
 	};

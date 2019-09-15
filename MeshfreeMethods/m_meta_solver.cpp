@@ -29,6 +29,7 @@ namespace msl {
 		constant_timestep_ = ct;
 		relaxation_ = er;
 		rc_ = rc;
+		use_srb_ = false;
 	}
 
 	void MetaSolver::printLabel() const {
@@ -151,15 +152,34 @@ namespace msl {
 		master_sort_ = master_solv_->sorted_;
 		if (slave_sort_ == nullptr || master_sort_ == nullptr)
 			throwException("configContact", "ensemble unsorted");
-		cm_ = std::make_shared<ContactManager>(master_sort_, slave_sort_, dp_, dp_, dt_);
-		cm_->setForceParams(dp_ * dp_ * dp_, 2.0*pow(10, 11)); // needs modification
+		if (master_solv_->l_compute_->getClassName() == "RigidBody")
+		cm_ = std::make_shared<ContactManager>(master_sort_, slave_sort_, (dp_s_ + dp_m_) / 1.8, dp_s_, dt_);
+		cm_->setForceParams(dp_s_ * dp_s_ * dp_s_, 10 * pow(10, 11)); // needs modification
+	}
+
+	void MetaSolver::configSRB() {
+		use_srb_ = true;
+		if (slave_solv_ == nullptr || master_solv_ == nullptr)
+			throwException("configSRB", "uninitialized solver!");
+		slave_sort_ = slave_solv_->sorted_;
+		//master_sort_ = master_solv_->sorted_;
+		if (slave_sort_ == nullptr)
+			throwException("configSRB", "ensemble unsorted");
+		if (master_solv_->l_compute_->getClassName() != "RigidBody")
+			throwException("configSRB", "master not rigid body!");
+		std::shared_ptr<RigidBody> rgb = std::static_pointer_cast<RigidBody>(master_solv_->l_compute_);
+		double radius = master_obj_.dims[0];
+		srb_cm_ = std::make_shared<ContactMngerSRB>(rgb, slave_sort_, radius, dp_s_, 5.0 * pow(10, 5));
 	}
 
 	void MetaSolver::createScene(ObjInfo master, ObjInfo slave, DomainConfig domain_config) {
+		master_obj_ = master;
+		slave_obj_ = slave;
 		slave_solv_->createEnsemble(slave, domain_config);
 		master_solv_->createEnsemble(master, domain_config);
 		setDomainConfig(domain_config);
-		dp_ = master.dp;
+		dp_s_ = slave.dp;
+		dp_m_ = master.dp;
 	}
 
 	void MetaSolver::configRun(double dt, double total_time, int sv_step) {
@@ -234,6 +254,56 @@ namespace msl {
 		}
 	}
 
+	void MetaSolver::runWithNoSlip() {
+		printInfo();
+		printMemoryInfo();
+		std::cout
+			<< "========================================================================\n"
+			<< "-------------------------  M4 SOLVER RUNNING  --------------------------\n"
+			<< "........................................................................\n";
+		std::cout
+			<< "Current time: " << theWatch().getDayTime()
+			<< "    Date: " << theWatch().getDate() << "\n";
+		sv_count_ = 0;
+		if (constant_timestep_) {
+			for (; timestep_ <= int(T_ / dt_); timestep_++) {
+				if (timestep_ % sv_step_ == 0) {
+					saveVtk();
+					std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
+						<< "\t" << std::endl;
+				}
+				theWatch().startTimer("run");
+				verletUpdateWithNoSlip();
+				if (timestep_ % 10 == 0)
+					std::cout << "(Constant) Timestep:\t" << timestep_ << "\t\t" << theWatch().stopAndFormat("run") << std::endl;
+			}
+			saveVtk();
+			std::cout << " SaveVtk " << sv_count_ << " finished! " << std::endl;
+
+		}
+		else {
+			int cnt = int(T_ / t_intv_);
+			for (; timestep_ <= cnt; timestep_++) {
+				saveVtk();
+				std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
+					<< "\t" << std::endl;
+				while (t_cur_ < t_intv_) {
+					theWatch().startTimer("run");
+					verletUpdateWithNoSlip();
+					if (timestep_ % 10 == 0)
+						std::cout << "(Variable) Timestep:\t" << timestep_ << " cur/intv: "
+						<< t_cur_ / t_intv_
+						<< "\t\t" << theWatch().stopAndFormat("run") << std::endl;
+					t_cur_ += cm_->getDt();
+				}
+				t_cur_ = 0.0;
+			}
+			saveVtk();
+			std::cout << " SaveVtk: " << sv_count_ << "\tTimestep: " << timestep_
+				<< "\t" << std::endl;
+		}
+	}
+
 	void MetaSolver::saveVtk() {
 		saveVtkSlave();
 		saveVtkMaster();
@@ -244,6 +314,12 @@ namespace msl {
 	void MetaSolver::saveVtkAll() {
 		std::string inner_folder = folder_ + "\\" + filename_ + "_All";
 		std::string vtkname = filename_ + "_All_" + std::to_string(sv_count_) + ".vtk";
+		std::string damage_front_txt = filename_ + "_damage_front_" + std::to_string(sv_count_) + ".txt";
+		std::ofstream damage_file(inner_folder + "\\" + damage_front_txt, std::ofstream::binary);
+		for (int i = 0; i < 10; i++) {
+			damage_file << slave_solv_->damage_front_[i] << " ";
+		}
+		damage_file.close();
 		int s_np = slave_solv_->np_;
 		int m_np = master_solv_->np_;
 		long np = s_np + m_np;
@@ -279,10 +355,12 @@ namespace msl {
 			file << slave_solv_->stack_[i].format(PureFmt) << "\n";
 		for (int i = 0; i < m_np; i++)
 			file << master_solv_->stack_[i].format(PureFmt) << "\n";
+		file.close();
 	}
 
 	void MetaSolver::saveVtkSlave() {
 		slave_solv_->saveVtk();
+		slave_solv_->updateDamageFront();
 	}
 
 	void MetaSolver::saveVtkMaster() {
@@ -293,22 +371,60 @@ namespace msl {
 		slave_sort_->makeSortPartial();
 		master_sort_->makeSortPartial();
 		//std::cout << "compute contact..\n";
-		cm_->updateContactZone();
-		cm_->computeContact();
-		//std::cout << "compute contact done!\n";
-		if (!constant_timestep_) {
-			dt_ = cm_->getDt();
-			slave_solv_->setDt(dt_);
-			master_solv_->setDt(dt_);
+		if (!use_srb_) {
+			cm_->updateContactZone();
+			cm_->computeContact();
+			//std::cout << "compute contact done!\n";
+			if (!constant_timestep_) {
+				dt_ = cm_->getDt();
+				slave_solv_->setDt(dt_);
+				master_solv_->setDt(dt_);
+			}
+		}
+		else {
+			srb_cm_->computeForces();
 		}
 		//std::cout << "updating master..\n";
-		master_solv_->verletUpdate();
+		
 		//std::cout << "master updated!\n";
 		//std::cout << "updating slave..\n";
-		slave_solv_->verletUpdate();
+		if (!use_srb_)
+			slave_solv_->verletUpdate();
+		else {
+			slave_solv_->verletUpdateWithNoSlip(srb_cm_->getCenterPos(), srb_cm_->getCenterVel(), 
+				srb_cm_->getCenterAcc(), srb_cm_->getEpsilon() - srb_cm_->getDp());
+		}
+		master_solv_->verletUpdate();
 		//std::cout << "slave updated!\n"; 
 		
 	}
+
+	void MetaSolver::verletUpdateWithNoSlip() {
+		slave_sort_->makeSortPartial();
+		master_sort_->makeSortPartial();
+		slave_solv_->verletUpdateStepOne();
+		master_solv_->verletUpdateStepOne();
+		slave_solv_->verletComputeForces();
+		master_solv_->verletComputeForces();
+		srb_cm_->computeForces();
+		slave_solv_->verletUpdateStepTwo();
+		master_solv_->verletUpdateStepTwo();
+		//-------------------
+		//slave_solv_->verletUpdateConfineVel(srb_cm_->getDp() * 0.04 / dt_);
+		double master_mass = srb_cm_->getMasterTotalMass();
+		double eps = srb_cm_->getRadius()- srb_cm_->getDp();
+		srb_cm_->update();
+		Vec3d master_center = srb_cm_->getCenterPos();
+		Vec3d vel = srb_cm_->getCenterVel();
+		Vec3d acc = srb_cm_->getCenterAcc();
+		Vec3d momentum = vel * master_mass;
+		Vec3d impulse = acc * master_mass;
+		slave_solv_->enforceNoSlip(momentum, impulse, master_mass, master_center, eps);
+		slave_solv_->verletUpdateStepThree();
+		//slave_solv_->verletUpdateConfineAcc(srb_cm_->getDp() * 0.9/ (dt_ * dt_));
+		master_solv_->verletUpdateStepThree();
+	}
+
 	void MetaSolver::configIO(std::string folder, std::string filename, 
 		std::string slave, std::string master) {
 		slave_solv_->configIO(folder, filename + "_" + slave);

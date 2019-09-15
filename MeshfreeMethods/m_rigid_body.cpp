@@ -44,6 +44,7 @@ namespace msl {
 
 	RigidBody::RigidBody(std::shared_ptr<SortEnsemble> sorted_ptr)
 		: LagrangianCompute(sorted_ptr) {
+		class_name_ = "RigidBody";
 		double mass = ensemble_ptr_->getMass();
 		computeCenter();
 		moi_ = Mat3d::Zero();
@@ -70,5 +71,24 @@ namespace msl {
 		for (int i = 0; i < np_; i++)
 			acc_[i] = center_acc_ + omega_dot_.cross(pos_[i] - center_) 
 			+ omega_.cross(vel_[i] - center_vel_);
+	}
+
+	void RigidBody::applyForce(const Vec3d& acc) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++) {
+			acc_[i] = acc;
+		}
+		center_acc_ = acc;
+	}
+
+	void RigidBody::applySpeed(const Vec3d & vel) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++)
+			vel_[i] = vel;
+		center_vel_ = vel;
 	}
 }

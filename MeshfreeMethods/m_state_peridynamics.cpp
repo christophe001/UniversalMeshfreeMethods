@@ -22,11 +22,16 @@
 #endif // _DEBUG_
 namespace msl {
 	StateBasedPD::StateBasedPD(std::shared_ptr<SortEnsemble> sorted,
-		std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh, double dt) 
+		std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh, 
+		double h2dp, double dt, bool damage) 
 		: LagrangianCompute::LagrangianCompute(sorted) {
 		//LagrangianCompute::computeBond();
 		nbh_ = nbh;
 		pnbh_ = pbh;
+		class_name_ = "StateBasedPD";
+		np_ = ensemble_ptr_->getNp();
+		damage_enabled_ = damage;
+		force_const_ = 1.5 * pow(10, 9);
 		shape_tensor_		= ensemble_ptr_->getTensorAttrPtr("shape_tensor")->getAttr();
 		deformation_		= ensemble_ptr_->getTensorAttrPtr("deformation")->getAttr();
 		tau_				= ensemble_ptr_->getTensorAttrPtr("tau")->getAttr();
@@ -48,18 +53,25 @@ namespace msl {
 			lambda_ = ensemble_ptr_->getScalarAttrPtr("lame_lambda")->getAttr();
 		if (ensemble_ptr_->hasScalarAttribute("lame_mu"))
 			mu_ = ensemble_ptr_->getScalarAttrPtr("lame_mu")->getAttr();
+		if (damage_enabled_) {
+			if (ensemble_ptr_->hasScalarAttribute("damage1"))
+				damage_ = ensemble_ptr_->getScalarAttrPtr("damage1")->getAttr();
+			else throwException("Constructor", "No damage1 variable found!");
+			if (ensemble_ptr_->hasScalarAttribute("damage"))
+				damage_all_ = ensemble_ptr_->getScalarAttrPtr("damage")->getAttr();
+			else throwException("Constructor", "No damage variable found!");
+		}
+		else damage_ = nullptr;
 
 		nbl_ = nbh_->getNeighborhoodList();
-		np_ = ensemble_ptr_->getNp();
-
+		
 		i_epsilon_ = 0;
-		i_p_ = 2;
+		i_p_ = 1;
 		shape_calc_ = false;
-		class_name_ = "StateBasedPD";
 		dt_ = dt;
 		dp_ = sorted->getEnsemble()->getDp();
 		rho_ = sorted->getEnsemble()->getDensity();
-		horizon_ = dp_ * 3.5;
+		horizon_ = dp_ * h2dp;
 
 
 	}
@@ -107,6 +119,7 @@ namespace msl {
 
 	void StateBasedPD::configParams(double horizon, double dp, double dt, double rho) {
 		dp_ = dp;
+		epsilon_ = dp_;
 		horizon_ = horizon;
 		dt_ = dt;
 		rho_ = rho;
@@ -122,8 +135,7 @@ namespace msl {
 			int j = nbl_[it];
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			double d = xi.norm();
-
-			deformation_[i] += influence(d) * xi * xi.transpose() * volumeCorrector(d);
+			shape_tensor_[i] += influence(d) * correction(i, j) * xi * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -133,7 +145,7 @@ namespace msl {
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			Vec3d eta = pos_[dict_[j]] - pos_[dict_[i]];
 			double d = xi.norm();
-			deformation_[i] += influence(d) * eta * xi.transpose() * volumeCorrector(d);
+			deformation_[i] += influence(d) * correction(i, j) * eta * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -143,7 +155,7 @@ namespace msl {
 			Vec3d xi = init_pos_[j] - init_pos_[i];
 			Vec3d eta_dot = vel_[dict_[j]] - vel_[dict_[i]];
 			double d = xi.norm();
-			deformation_dot_[i] += influence(d) * eta_dot * xi.transpose() * volumeCorrector(d);
+			deformation_dot_[i] += influence(d) * correction(i, j) * eta_dot * xi.transpose() * volumeCorrector(d);
 		}
 	}
 
@@ -156,38 +168,49 @@ namespace msl {
 			Mat3d sigma_j = rotation_[j] * tau_[j] * rotation_[j].transpose();
 			Mat3d P_i = deformation_[i].determinant() * sigma_i * deformation_[i].inverse().transpose();
 			Mat3d P_j = deformation_[j].determinant() * sigma_j * deformation_[j].inverse().transpose();
-			Vec3d force_i = influence(d) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
-			acc_[dict_[i]] += force_i * volumeCorrector(d) * dv_ / rho_;
+			Vec3d force_i = influence(d) * correction(i, j) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
+			acc_[dict_[i]] += force_i * volumeCorrector(d) * pow(10, 9) / rho_;
 		}
 	}
 
 	void StateBasedPD::addForceStateNoRot(int i, long it) {
 		if (nbh_->getBondDamage()[it] < 1.0) {
 			int j = nbl_[it];
-			Vec3d xi = init_pos_[j] - init_pos_[i];
-			double d = xi.norm();
-			Mat3d P_i = deformation_[i].determinant() * tau_[i] * deformation_[i].inverse().transpose();
-			Mat3d P_j = deformation_[j].determinant() * tau_[j] * deformation_[j].inverse().transpose();
-			Vec3d force_i = influence(d) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
-			acc_[dict_[i]] += force_i * volumeCorrector(d) * dv_ / rho_;
+			if (damage_[i] < 0.99) {
+				Vec3d xi = init_pos_[j] - init_pos_[i];
+				double d = xi.norm();
+				Mat3d P_i = deformation_[i].determinant() * tau_[i] * deformation_[i].inverse().transpose();
+				Mat3d P_j = deformation_[j].determinant() * tau_[j] * deformation_[j].inverse().transpose();
+				Vec3d force_i = influence(d) * correction(i, j) * (P_i * shape_tensor_[i] + P_j * shape_tensor_[j]) * xi;
+				acc_[dict_[i]] += force_i * volumeCorrector(d) * pow(10, 9) / rho_;
+			}
+			
+			if ((pos_[dict_[j]] - pos_[dict_[i]]).norm() < epsilon_) {
+				Vec3d eta = pos_[dict_[j]] - pos_[dict_[i]];
+				acc_[dict_[i]] -= force_const_ * dv_ * eta / (eta.norm() * ensemble_ptr_->getMass())
+					* log(epsilon_ / eta.norm());
+			}
 		}
 	}
 
 	void StateBasedPD::computeShapeTensor() {
-		if (shape_calc_)
-			return;
-		else {
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
 			for (int i = 0; i < np_; i++)
-				deformation_[i] = Mat3d::Zero();
+				shape_tensor_[i] = Mat3d::Zero();
 			compute(static_cast<LagrangianCompute::fpn>(&StateBasedPD::addShapeTensor));
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
-			for (int i = 0; i < np_; i++) 
-				shape_tensor_[i] = deformation_[i].inverse();	
+			for (int i = 0; i < np_; i++) {
+				if (shape_tensor_[i].determinant() == 0)
+					shape_tensor_[i] = Mat3d::Identity();
+				else { 
+					Mat3d temp = shape_tensor_[i].inverse(); 
+					shape_tensor_[i] = temp;
+				}
+			}
 #ifdef _DEBUG_
 			std::uniform_int_distribution<> dis(0, np_ - 1);
 			std::default_random_engine re;
@@ -198,8 +221,7 @@ namespace msl {
 					<< shape_tensor_[id].format(CleanFmt) << "\n\n";
 			}
 #endif // !_DEBUG_
-			shape_calc_ = true;
-		}
+
 	}
 
 	void StateBasedPD::computeDeformation() {
@@ -213,8 +235,16 @@ namespace msl {
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
-		for (int i = 0; i < np_; i++)
-			deformation_[i] = deformation_[i] * shape_tensor_[i];
+		for (int i = 0; i < np_; i++) {
+			if (deformation_[i].isZero())
+				deformation_[i] = deformation_last_[i];
+			else
+				deformation_[i] = deformation_[i] * shape_tensor_[i];			
+			//
+			if (deformation_[i].determinant() == 0.0)
+				deformation_[i] += 0.01 * Mat3d::Identity();
+			//
+		}
 #ifdef _DEBUG_
 		std::uniform_int_distribution<> dis(0, np_ - 1);
 		std::default_random_engine re;

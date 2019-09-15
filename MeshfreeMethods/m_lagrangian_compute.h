@@ -32,13 +32,14 @@ namespace msl {
 		Vec3d*								pos_;
 		Vec3d*								vel_;
 		Vec3d*								acc_;
+		double*								damage_;
 		int*								dict_;
 		int*								id_;
 		int									np_;
 		std::shared_ptr<PeriNeighborData>	pnbh_;
 		std::shared_ptr<NeighborhoodData>	nbh_;
 		std::shared_ptr<ComputeNeighbor>	cpn_;
-
+	
 		typedef	void(LagrangianCompute::*fpn)(int i, long j);
 		typedef void(LagrangianCompute::*fpnpb)(PeriNeighborData::PeriBond& pb);
 		void computeAll(fpn funptr);
@@ -47,6 +48,7 @@ namespace msl {
 
 	public:
 		void doNothing(PeriNeighborData::PeriBond& pb) {}
+		std::shared_ptr<Ensemble> getEnsemble() { return ensemble_ptr_; }
 		LagrangianCompute();
 		LagrangianCompute(std::shared_ptr<ComputeNeighbor> cpn_ptr);
 		LagrangianCompute(std::shared_ptr<SortEnsemble> sorted_ptr);
@@ -55,6 +57,7 @@ namespace msl {
 		void init(std::shared_ptr<SortEnsemble> sorted_ptr);
 		void init(std::shared_ptr<ComputeNeighbor> cpn_ptr);
 		void computeBond();
+		void enforceNoSlip(const Vec3d& center, const Vec3d& vel, const Vec3d& acc, double eps);
 		virtual void compute(fpn fun1, fpnpb fun2 = &doNothing);
 		virtual void computeForces() {}
 		virtual ~LagrangianCompute() {}

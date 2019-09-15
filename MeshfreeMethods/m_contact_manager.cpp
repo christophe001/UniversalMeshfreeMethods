@@ -136,13 +136,13 @@ namespace msl {
 	/// Penalty handler
 	//==============================================================================
 	void ContactManager::penaltyHandler(int i, int j) {
-		if ((spos_[j] - mpos_[i]).norm() < 2 * epsilon_ ) {
+		if ((spos_[j] - mpos_[i]).norm() <  epsilon_ ) {
 			Vec3d eta = spos_[j] - mpos_[i];
 			Vec3d dvel = svel_[j] - mvel_[i];
 			if (dvel.dot(eta) < 0) {
 				dt_ = std::min(eta.squaredNorm() / abs(dvel.dot(eta)), dt_);
 			}
-			Vec3d force = force_const_ * dv_ * eta / eta.norm() * pow(2 * epsilon_ / (eta.norm()) - 1, 1.0);
+			Vec3d force = force_const_ * dv_ * eta / eta.norm() * pow( epsilon_ / (eta.norm()) - 1, 1.5);
 			macc_[i] -= force / ensemble_m_->getMass();
 			sacc_[j] += force / ensemble_s_->getMass();
 			//

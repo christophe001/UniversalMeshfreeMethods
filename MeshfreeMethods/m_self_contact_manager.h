@@ -21,7 +21,7 @@
 namespace msl {
 	class SelfContactManager : public EulerianCompute {
 	protected:
-		Vec3d*	ipos_;
+		Vec3d*	last_pos_;
 		double	epsilon_;
 		double	range_;
 		double	ds_max_;
@@ -43,6 +43,8 @@ namespace msl {
 		void contactForce(int i, int j);
 		
 		void computeForces() override;
+
+		std::string format() const override;
 		
 		virtual ~SelfContactManager();
 	};

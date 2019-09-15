@@ -29,7 +29,7 @@ namespace msl {
 		try {
 			attr_ = new double[list_size_];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setListSize", "Error occured while allocating memeory");
 		}
 	}
@@ -57,7 +57,7 @@ namespace msl {
 		try {
 			attr_ = new double[np];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setNp", "Error occured while allocating memory");
 		}
 	}
@@ -85,7 +85,7 @@ namespace msl {
 		try {
 			attr_ = new Vec3d[np];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setNp", "Error occured while allocating memory");
 		}
 	}
@@ -112,7 +112,7 @@ namespace msl {
 		try {
 			attr_ = new Mat3d[np];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setNp", "Error occured while allocating memory");
 		}
 	}

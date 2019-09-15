@@ -18,7 +18,7 @@
 
 #include "m_types.h"
 #include "m_obj.h"
-#include <vector>
+#include <unordered_map>
 #include <memory>
 
 namespace msl {
@@ -47,7 +47,7 @@ namespace msl {
 	class Rectangle2D : public Shape {
 		double a_, b_;
 	public:
-		Rectangle2D() { shape2d_ = true; }
+		Rectangle2D() { shape2d_ = true; name_ = "rectangle_2d";}
 		Rectangle2D(double a, double b);
 		double getFirstDim() const override { return a_; }
 		double getVolume() const override;
@@ -59,7 +59,7 @@ namespace msl {
 	class Circle : public Shape {
 		double r_;
 	public:
-		Circle() { shape2d_ = true; }
+		Circle() { shape2d_ = true; name_ = "circle";}
 		Circle(double r);
 		double getFirstDim() const override { return r_; }
 		double getVolume() const override;
@@ -71,7 +71,7 @@ namespace msl {
 	class Triangle : public Shape {
 		double a_, b_;
 	public:
-		Triangle() { shape2d_ = true; }
+		Triangle() { shape2d_ = true; name_ = "triangle"; }
 		Triangle(double a, double b);
 		double getFirstDim() const override { return a_; }
 		double getVolume() const override;
@@ -83,7 +83,7 @@ namespace msl {
 	class Rectangle : public Shape {
 		double a_, b_, c_;
 	public:
-		Rectangle() { shape2d_ = false; }
+		Rectangle() { shape2d_ = false; name_ = "rectangle"; }
 		Rectangle(double a, double b, double c);
 		double getFirstDim() const override { return a_; }
 		double getVolume() const override;
@@ -95,7 +95,7 @@ namespace msl {
 	class Sphere : public Shape {
 		double r_;
 	public:
-		Sphere() { shape2d_ = false; }
+		Sphere() { shape2d_ = false; name_ = "sphere"; }
 		Sphere(double r);
 		double getFirstDim() const override { return r_; }
 		double getVolume() const  override;
@@ -107,7 +107,7 @@ namespace msl {
 	class Cone : public Shape {
 		double r_, h_;
 	public:
-		Cone() { shape2d_ = false; }
+		Cone() { shape2d_ = false; name_ = "cone"; }
 		Cone(double r, double h);
 		double getFirstDim() const override { return r_; }
 		double getVolume() const override;
@@ -119,7 +119,7 @@ namespace msl {
 	class Cylinder : public Shape {
 		double r_, h_;
 	public:
-		Cylinder() { shape2d_ = false; }
+		Cylinder() { shape2d_ = false; name_ = "cylinder"; }
 		Cylinder(double r, double h);
 		double getFirstDim() const override { return r_; }
 		double getVolume() const override;

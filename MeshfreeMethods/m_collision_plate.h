@@ -15,6 +15,7 @@
 
 #include "m_meta_solver.h"
 #include "m_state_kl_model.h"
+#include "m_sphere_rigid_body.h"
 
 namespace msl {
 
@@ -32,4 +33,6 @@ namespace msl {
 		void run();
 
 	};
+
+
 }

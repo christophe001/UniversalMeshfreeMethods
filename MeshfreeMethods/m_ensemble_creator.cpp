@@ -186,7 +186,7 @@ namespace msl {
 		try {
 			cache_ = new Vec3d[size_approx];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("create()", "Error occured allocating memory for cache");
 		}
 		std::vector<double> dims = shape_->getDims();

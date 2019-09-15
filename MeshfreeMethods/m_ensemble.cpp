@@ -62,7 +62,7 @@ namespace msl {
 			vel_ = new Vec3d[np];
 			acc_ = new Vec3d[np];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setNp", "Error occured while allocating memory");
 		}
 

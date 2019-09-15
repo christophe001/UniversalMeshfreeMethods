@@ -87,6 +87,7 @@ namespace msl {
 		this->max_cell_ = other.max_cell_;
 		this->peri_cellmin_ = other.peri_cellmin_;
 		this->peri_cellmax_ = other.peri_cellmax_;
+		this->class_name_ = other.getClassName();
 		return *this;
 	}
 

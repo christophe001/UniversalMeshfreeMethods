@@ -55,7 +55,7 @@ namespace msl {
 
 		int  getNp() const { return np_; }
 		
-		int  getListSize() const { return list_size_; }
+		long getListSize() const { return list_size_; }
 		
 		long getTotalBonds() const { return total_bonds_; }
 		

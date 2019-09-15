@@ -25,7 +25,7 @@ namespace msl {
 		: EulerianCompute(ensemble_ptr_), force_const_(force_const) {
 		class_name_ = "SelfContactManager";
 		try {
-			ipos_ = new Vec3d[np_];
+			last_pos_ = new Vec3d[np_];
 		}
 		catch (std::bad_alloc) {
 			throwException("Constructor", "Error occured while allocating memory");
@@ -35,7 +35,7 @@ namespace msl {
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP_
 		for (int i = 0; i < np_; i++)
-			ipos_[i] = pos_[i];
+			last_pos_[i] = pos_[i];
 	}
 
 	//==============================================================================
@@ -50,6 +50,7 @@ namespace msl {
 		range_ = range;
 		epsilon_ = epsilon;
 		dv_ = cfg.sim2d() ? dp * dp : dp * dp * dp;
+		makeSortFull(false);
 	}
 
 	//==============================================================================
@@ -62,14 +63,15 @@ namespace msl {
 		range_ = cfg.getVoxelSize()[0];
 		epsilon_ = epsilon;
 		dv_ = cfg.sim2d() ? dp * dp : dp * dp * dp;
+		makeSortFull(false);
 	}
 
 	//==============================================================================
 	/// Destructor
 	//==============================================================================
 	SelfContactManager::~SelfContactManager() {
-		if (ipos_ != 0)
-			delete[] ipos_;
+		if (last_pos_ != 0)
+			delete[] last_pos_;
 	}
 
 	//==============================================================================
@@ -78,7 +80,7 @@ namespace msl {
 	void SelfContactManager::calcDsMax() {
 		ds_max_ = 0.0;
 		for (int i = 0; i < np_; i++) {
-			ds_max_ = std::max((pos_[i]- ipos_[i]).norm(), ds_max_);
+			ds_max_ = std::max((pos_[i]- last_pos_[i]).norm(), ds_max_);
 		}
 	}
 
@@ -87,16 +89,14 @@ namespace msl {
 	/// otherwise update maximum displacement
 	//==============================================================================
 	void SelfContactManager::updateVerletList() {
-		if (range_ - epsilon_ - 2 * ds_max_ < 0) {
+		calcDsMax();
+		if (range_ - epsilon_ - 2.0 * ds_max_ < 0) {
 			sorted_ptr_->makeSortPartial(true);
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP_
 			for (int i = 0; i < np_; i++)
-				ipos_[i] = pos_[i];
-		}
-		else {
-			calcDsMax();
+				last_pos_[i] = pos_[i];
 		}
 	}
 
@@ -106,7 +106,9 @@ namespace msl {
 	void SelfContactManager::contactForce(int i, int j) {
 		if ((pos_[j] - pos_[i]).norm() < epsilon_) {
 			Vec3d eta = pos_[j] - pos_[i];
-			acc_[id_[i]] -= force_const_ * dv_ * eta / eta.norm() * log(epsilon_/eta.norm());
+			//acc_[i] -= force_const_ * dv_ * eta / (eta.norm() * ensemble_ptr_->getMass()) 
+			//	* pow(epsilon_ / (eta.norm()) - 1, 1.0);
+			acc_[i] -= force_const_ * dv_ * eta / (eta.norm() * ensemble_ptr_->getMass()) * log(epsilon_ / eta.norm());
 		}
 	}
 
@@ -114,6 +116,18 @@ namespace msl {
 	/// compute repulsive(penaulty) force for all particles
 	//==============================================================================
 	void SelfContactManager::computeForces() {
+		updateVerletList();
 		compute(static_cast<EulerianCompute::fpn>(&SelfContactManager::contactForce));
+	}
+
+	//==============================================================================
+	/// formatting the manager
+	//==============================================================================
+	std::string SelfContactManager::format() const {
+		std::string s;
+		s += " range is: " + std::to_string(range_) + "\n";
+		s += " epsilon is: " + std::to_string(epsilon_) + "\n";
+		s += " force constant is: " + std::to_string(force_const_) + "\n";
+		return s;
 	}
 }

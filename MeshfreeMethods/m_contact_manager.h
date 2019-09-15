@@ -58,8 +58,8 @@ namespace msl {
 		
 		virtual ~ContactManager() {}
 		typedef void (ContactManager::*handler)(int i, int j);
-		void computeContact(handler hptr = &penaltyHandler);
-		void updateContactZone();
+		virtual void computeContact(handler hptr = &penaltyHandler);
+		virtual void updateContactZone();
 		void penaltyHandler(int i, int j);
 		double getDt() { return dt_; }
 	};

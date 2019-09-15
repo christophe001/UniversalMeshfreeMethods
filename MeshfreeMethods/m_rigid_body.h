@@ -20,6 +20,7 @@
 
 namespace msl {
 	class RigidBody : public LagrangianCompute {
+		
 	protected:
 		Mat3d	moi_;
 		Vec3d	center_;
@@ -29,6 +30,7 @@ namespace msl {
 		Vec3d	omega_dot_;
 		void	computeCenter();
 		void	computeOmega();
+		friend class ContactMngerSRB;
 	public:
 		RigidBody(std::shared_ptr<SortEnsemble> sorted_ptr);
 		virtual ~RigidBody() {}
@@ -36,6 +38,14 @@ namespace msl {
 			return "a rigid body\n";
 		}
 		void computeForces() override;
+		Vec3d getCenterPos() const { return center_; }
+		Mat3d getMoI() const { return moi_; }
+		Vec3d getCenterVel() const { return center_vel_; }
+		Vec3d getCenterAcc() const { return center_acc_; }
+		Vec3d getOmega() const { return omega_; }
+		Vec3d getOmegaDot() const { return omega_dot_; }
+		void applyForce(const Vec3d& acc);
+		void applySpeed(const Vec3d& vel);
 	};
 }
 #endif

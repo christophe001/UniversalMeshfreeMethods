@@ -206,7 +206,7 @@ namespace msl {
 		try {
 			stack_ = new Vec3d[np_];
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("createEnsemble", "Error occured while allocating memory for stack");
 		}
 		scalar_attrs_ = ensemble_->getScalarAttrPtrs();

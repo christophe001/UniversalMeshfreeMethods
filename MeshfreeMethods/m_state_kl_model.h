@@ -28,10 +28,11 @@ namespace msl {
 		double	D1_, D2_;
 		double  C1_, C2_;
 		double	p_t_;				//! tensile failure pressure
+		double  tensile_0_, weibull_c_;
 		double  a_[3][4];
-		double  b_[2][4];
+		double  b_[3][4]; //b_[2][4];
+		double  c_[6];
 		double  p_0_, Lambda_, alpha_;
-
 		//*********************************************************************
 		//					Critical state parameters
 		//*********************************************************************
@@ -40,11 +41,15 @@ namespace msl {
 		//*********************************************************************
 		//			       Additional material properties
 		//*********************************************************************
-		double* damage_;		//! damage variable
+		double* damage1_;		//! damage variable 1
+		double* damage2_;		//! damage variable 2
+		double* damage_;		//! overall damage
 		double* pressure_;		//! pressure
 		double* theta_e_;		//! elastic part of log-volumetric strain 
 		double* theta_p_;		//! plastic part of log-volumetric strain
 		Mat3d*	hencky_;		//! elastic hencky strain
+
+		double* tensile_limit_;  //! tensile limits
 
 	public:
 		struct Vars {
@@ -53,28 +58,49 @@ namespace msl {
 			double theta_p;
 			Mat3d hencky;
 			Mat3d sigma;
-			Vars(double d, double te, double tp, 
-				Mat3d s, Mat3d h) {
+			Vars(const double& d, const double& te, const double& tp, 
+				const Mat3d& s, const Mat3d& h) {
 				damage = d;
 				theta_e = te;
 				theta_p = tp;
 				sigma = s;
 				hencky = h;
 			}
+			Vars(const Vars& other) {
+				this->damage = other.damage;
+				this->hencky = other.hencky;
+				this->sigma = other.sigma;
+				this->theta_e = other.theta_e;
+				this->theta_p = other.theta_p;
+			}
+			Vars& operator=(const Vars& other) {
+				if (this == &other)
+					return *this;
+				this->damage = other.damage;
+				this->hencky = other.hencky;
+				this->sigma = other.sigma;
+				this->theta_e = other.theta_e;
+				this->theta_p = other.theta_p;
+				return *this;
+			}
 		};
 		void computeTau() override;
 		void computeForces() override;
 		void adoptKlog() { klog_ = true; }
 		void setDamageParams(double c1, double c2, double d1, double d2);
-		StateKLModel(std::shared_ptr<SortEnsemble> sorted,
-			std::shared_ptr<NeighborhoodData> nbh, std::shared_ptr<PeriNeighborData> pbh, double dt = 0);
+		double tensileDamage(int i) const;
+		StateKLModel(std::shared_ptr<SortEnsemble> sorted, std::shared_ptr<NeighborhoodData> nbh, 
+			std::shared_ptr<PeriNeighborData> pbh, double h2dp = 3.5, double dt = 0);
 		virtual ~StateKLModel() {}
 		//! Yield condition
 		double yield(const Mat3d& sigma, const double& theta_p, const double& damage) const;
+
 		double checkYield(const Mat3d& h_tr, const Mat3d& sigma, const double& J, const double& theta_e,
 			const double& theta_p, const double& p, const double& damage, const double& dgamma) const;
-		double pc(const double& theta_p) const;
+
+		double pc(const double& theta_p) const; 
 		double qc(const double& pm) const;
+
 		double qf(const double& pc) const;
 		//! Elastic response
 		double shear(const double& theta_e, const double& theta_p) const;
@@ -101,6 +127,8 @@ namespace msl {
 		//! Lagrangian multiplier calculation
 		Vars dgamma(const Mat3d& sigma, const Mat3d& hencky, const Mat3d& f_last, const Mat3d& f,
 			const double& theta_e, const double& theta_p, const double& damage) const;
+		double bisectionSearch(const double& left, const double& right, const Mat3d& h_tr, const Mat3d& sigma, const double& J, const double& theta_e,
+			const double& theta_p, const double& p, const double& damage) const;
 	};
 }
 

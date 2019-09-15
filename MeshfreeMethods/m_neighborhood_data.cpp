@@ -26,7 +26,7 @@ namespace msl {
 			bond_damage_ = new double[ls]();
 			list_size_ = ls;
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setListSize()", "Error occured while allocating memory");
 		}
 		for (auto && attr : bond_attrs_)
@@ -85,7 +85,7 @@ namespace msl {
 			bond_count_ = new int[np]();
 			particle_damage_ = new double[np]();
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("setNp()", "Error occured while allocating memory");
 		}
 	}

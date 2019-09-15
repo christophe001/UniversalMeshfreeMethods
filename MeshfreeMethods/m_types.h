@@ -25,6 +25,10 @@
 #define _WITH_OMP_
 #endif // !_WITH_OMP 
 
+#define _CRT_SECURE_NO_DEPRECATE  
+#define _CRT_NONSTDC_NO_DEPRECATE
+
+
 const double pi = 3.14159265358979323846;
 
 typedef std::vector<std::vector<double>> ModelParams;
@@ -42,6 +46,8 @@ const ModelParams jh2_param_3{ NOPD, ParamsList{0.93,0.31,0,0.6,0.6},
 		ParamsList{0.005, 1}, ParamsList{ 2.79, 1.46 }, ParamsList{ 130.95, 0, 0 } };
 
 const double rad2deg = 180.0 / pi;
+
+const double sqtwothirds = sqrt(2.0 / 3.0);
 
 const double epsilon = pow(10.0, -9.0);
 

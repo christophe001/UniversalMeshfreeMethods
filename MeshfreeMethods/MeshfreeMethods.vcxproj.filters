@@ -96,6 +96,12 @@
     <ClCompile Include="m_model_vtk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="m_contact_manager_rigid_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="m_sphere_rigid_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="u_timer.h">
@@ -183,6 +189,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="m_model_vtk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_contact_manager_rigid_body.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="m_sphere_rigid_body.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

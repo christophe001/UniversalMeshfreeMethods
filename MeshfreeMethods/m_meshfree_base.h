@@ -17,11 +17,13 @@
 #define _M4_MESHFREE_
 
 #include <iostream>
+#include <vector>
 #include "m_lagrangian_compute.h"
 #include "m_state_kl_model.h"
 #include "m_rigid_body.h"
 #include "m_eulerian_compute.h"
 #include "m_shape.h"
+#include "m_self_contact_manager.h"
 #include "m_ensemble_creator.h"
 //#include "m_state_pd_jh2.h"
 
@@ -36,6 +38,7 @@ namespace msl {
 		double      density;
 		Vec3d	    velocity;
 		std::string solver;
+		ObjInfo() {}
 		ObjInfo(std::string s, Vec3d d, std::string solv, double delta_d, double rho, Vec3d vel = Vec3d::Zero(),
 			Vec3d os = Vec3d::Zero(), Vec3d or = Vec3d::UnitZ(), double th = 0.0) {
 			shape = s;
@@ -48,6 +51,19 @@ namespace msl {
 			orientation = or ;
 			theta = th;
 		}
+
+		ObjInfo(const ObjInfo& obj) {
+			shape = obj.shape;
+			dims = obj.dims;
+			offset = obj.offset;
+			dp = obj.dp;
+			density = obj.density;
+			velocity = obj.velocity;
+			orientation = obj.orientation;
+			theta = obj.theta;
+			solver = obj.solver;
+		}
+
 		ObjInfo& operator=(const ObjInfo& obj) {
 			shape = obj.shape;
 			dims = obj.dims;
@@ -94,6 +110,7 @@ namespace msl {
 
 	class MeshfreeBase : public MsObj {
 	protected:
+		friend class ContactMngerSRB;
 		//*********************************************************************
 		//		Ensemble structure and computational features
 		//*********************************************************************
@@ -133,6 +150,10 @@ namespace msl {
 		Vec3d*									pos_;
 		Vec3d*									vel_;
 		Vec3d*									acc_;
+		double*									damage_;
+		std::vector<double>                     damage_front_;
+
+		double									mass_;
 		//! memory stack for storage
 		Vec3d*									stack_;
 		//! ensemble attributes
@@ -247,6 +268,7 @@ namespace msl {
 		void addPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void addInitialPosForce(std::shared_ptr<Shape> shape, Vec3d force);
 		void initForces();
+		void updateDamageFront();
 
 		//*********************************************************************
 		//							Run params
@@ -261,7 +283,16 @@ namespace msl {
 		//							Run operations
 		//*********************************************************************
 		void verletUpdate();
+		void verletUpdateStepOne();
+		void verletComputeForces();
+		void verletUpdateStepTwo();
+		void verletUpdateStepThree();
+		void verletUpdateConfineVel(double v);
+		void verletUpdateConfineAcc(double acc);
+		void verletUpdateWithNoSlip(const Vec3d & center, const Vec3d & vel,
+			const Vec3d & acc, double eps);
 		void addViscosity() {}
+		void enforceNoSlip(Vec3d& momentum, Vec3d& impulse, double& mass, Vec3d center, double eps);
 
 		friend class MetaSolver;
 	};

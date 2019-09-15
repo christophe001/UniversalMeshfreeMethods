@@ -24,11 +24,16 @@ namespace msl {
 		meta_->configRun(dt, total_time, sv);
 		meta_->createScene(projectile_, target_, domain_cfg);
 		meta_->configContact();
+		meta_->configSRB();
 		class_name_ = "CollisionPlate";
 	}
 
 	void CollisionPlate::run() {
-		meta_->run();
+		//meta_->run();
+		meta_->runWithNoSlip();
 	}
+
+
+
 
 }

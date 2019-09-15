@@ -77,9 +77,9 @@ namespace msl {
 			return !cellInnerDomain(cell) && !cellOutBound(cell);
 		}
 		bool isOutBound(const Vec3d& pos) const { return !((pos.array() >= peri_min_.array()).all() 
-			&& (pos.array() <= peri_max_.array()).all()); }
+			&& (pos.array() < peri_max_.array()).all()); }
 		bool isOutDomain(const Vec3d& pos) const { return !((pos.array() >= pmin_.array()).all() 
-			&& (pos.array() <= pmax_.array()).all()); }
+			&& (pos.array() < pmax_.array()).all()); }
 		bool inPeriZone(const Vec3d& pos) const { return isOutDomain(pos) && (!isOutBound(pos)); }
 		friend std::ostream& operator<< (std::ostream& os, const DomainConfig& cfg);
 	};

@@ -31,7 +31,7 @@ namespace msl {
 		Vec3d*								vel_;
 		Vec3d*								acc_;
 		int									np_;
-		int									total_cells_;
+		long								total_cells_;
 		std::shared_ptr<PeriNeighborData>	pnbh_;
 		std::shared_ptr<NeighborhoodData>	nbh_;
 		double								horizon_;

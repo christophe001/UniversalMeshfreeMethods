@@ -101,8 +101,12 @@ namespace msl {
 		dict_ = ensemble_->getDict();
 		try {
 			stack_ = new Vec3d[np_];
+			for (int i = 0; i < np_; i++)
+
+				stack_[i] = Vec3d::Zero();
+
 		}
-		catch (std::bad_alloc) {
+		catch (const std::bad_alloc&) {
 			throwException("createEnsemble", "Error occured while allocating memory for stack");
 		}
 		scalar_attrs_ = ensemble_->getScalarAttrPtrs();
@@ -117,6 +121,12 @@ namespace msl {
 		std::cout << "sorting completed!\n\n";
 		configSolver(obj.solver);
 		setInitVel(obj.velocity);
+		mass_ = ensemble_->getMass();
+		if (ensemble_->hasScalarAttribute("damage")) {
+			damage_ = ensemble_->getScalarAttrPtr("damage")->getAttr();
+			damage_front_ = std::vector<double>(10, 0.0);
+		}
+		else damage_ = nullptr;
 	}
 
 	void MeshfreeBase::printLabel() const {
@@ -176,7 +186,7 @@ namespace msl {
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP_
 			for (int i = 0; i < np_; i++)
-				acc_[i] -= rc_ * vel_[i];
+				acc_[i] -= rc_ * vel_[i] * 10;
 	}
 
 	void MeshfreeBase::setInitVel(Vec3d vel) {
@@ -239,6 +249,18 @@ namespace msl {
 		}
 	}
 
+	void MeshfreeBase::updateDamageFront() {
+		if (ensemble_->hasScalarAttribute("damage")) {
+			for (int i = 0; i < np_; i++) {
+				for (int j = 0; j < 10; j++) {
+					if (damage_[i] > (j / 10.0)) {
+						damage_front_[j] = max(sqrt(pow(pos_[i][0], 2) + pow(pos_[i][1], 2)), damage_front_[j]);
+					}
+				}
+			}
+		}
+	}
+
 	void MeshfreeBase::setDt(double dt) {
 		if (!constant_timestep_) {
 			dt_ = min(dt, dt_max_);
@@ -260,7 +282,7 @@ namespace msl {
 
 	void MeshfreeBase::configSolver(std::string lcompute, std::string ecompute, 
 		std::vector<std::string> attrs) {
-		if (!lcompute.empty()) {
+		if (!lcompute.empty() && lcompute != "rigid") {
 			std::shared_ptr<ComputeNeighbor> cpn = std::make_shared<ComputeNeighbor>(sorted_);
 			//std::cout << "dp: " << dp_ << " horizon: " << horizon_ << std::endl;
 			cpn->initialize(dp_, horizon_, attrs);
@@ -276,10 +298,19 @@ namespace msl {
 	}
 
 	void MeshfreeBase::configLagrangianKL() {
+		std::cout << "configuring solver kl...\n";
+		relaxation_ = true;
+		//rc_ = 5.0 * pow(10, 6.0);
+		rc_ =5.0 * pow(10, 5);
 		l_compute_ = std::make_shared<StateKLModel>(sorted_, nbh_, pbh_);
+		//e_compute_ = std::make_shared<SelfContactManager>(ensemble_, 15 * pow(10, 10));
+		
+		//std::static_pointer_cast<SelfContactManager>(e_compute_)->setParams(domain_config_.getPosMin(), 
+			//domain_config_.getPosMax(), 1.2 * dp_, 0.75 * dp_, dp_);
 	}
 
 	void MeshfreeBase::configRigidBody() {
+		std::cout << "configuring solver rigid...\n";
 		l_compute_ = std::make_shared<RigidBody>(sorted_);
 	}
 
@@ -324,7 +355,6 @@ namespace msl {
 			e_compute_->computeForces();
 		if (relaxation_)
 			adaptiveRelaxation();
-
 #ifdef _WITH_OMP_
 #pragma omp parallel for schedule(static)
 #endif // _WITH_OMP
@@ -339,6 +369,163 @@ namespace msl {
 			acc_[i] = Vec3d::Zero();
 		}
 		//ensemble_->calcBox();
+	}
+
+	void MeshfreeBase::verletUpdateStepOne() {
+		if (!constant_timestep_)
+			configDt();
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			pos_[i] += vel_[i] * dt_ + 0.5 * dt_ * dt_ * stack_[i];
+	}
+
+	void MeshfreeBase::verletComputeForces() {
+		if (l_compute_ != nullptr)
+			l_compute_->computeForces();
+		if (e_compute_ != nullptr)
+			e_compute_->computeForces();
+		if (relaxation_)
+			adaptiveRelaxation();
+	}
+
+	void MeshfreeBase::verletUpdateStepTwo() {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			vel_[i] += (acc_[i] + stack_[i]) * 0.5 * dt_;
+	}
+
+	void MeshfreeBase::verletUpdateStepThree() {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++) {
+			stack_[i] = acc_[i];
+			acc_[i] = Vec3d::Zero();
+		}
+	}
+
+	void MeshfreeBase::verletUpdateConfineVel(double v) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			if (vel_[i].norm() > v) {
+				Vec3d vt = vel_[i] / vel_[i].norm() * v;
+				vel_[i] = vt;
+			}
+	}
+
+	void MeshfreeBase::verletUpdateConfineAcc(double acc) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			if (stack_[i].norm() > acc) {
+				Vec3d st = stack_[i] / stack_[i].norm() * acc;
+				stack_[i] = st;
+			}
+	}
+
+	void MeshfreeBase::verletUpdateWithNoSlip(const Vec3d & center, const Vec3d & vel, 
+		const Vec3d & acc, double eps) {
+		if (!constant_timestep_)
+			configDt();
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			pos_[i] += vel_[i] * dt_ + 0.5 * dt_ * dt_ * stack_[i];
+		if (!confined_regions_.empty()) {
+			Vec3d * ipos = ensemble_->getVectorAttrPtr("initial_position")->getAttr();
+			for (auto shape : confined_regions_) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+				for (int i = 0; i < np_; i++) {
+					if (shape->isWithin(ipos[i])) {
+						pos_[dict_[i]] = ipos[i];
+					}
+				}
+			}
+		}
+		if (!confined_regions_complement_.empty()) {
+			Vec3d * ipos = ensemble_->getVectorAttrPtr("initial_position")->getAttr();
+			for (auto shape : confined_regions_complement_) {
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+				for (int i = 0; i < np_; i++) {
+					if (!shape->isWithin(ipos[i])) {
+						pos_[dict_[i]] = ipos[i];
+					}
+				}
+			}
+		}
+		initForces();
+		if (l_compute_ != nullptr)
+			l_compute_->computeForces();
+		if (e_compute_ != nullptr)
+			e_compute_->computeForces();
+		if (relaxation_)
+			adaptiveRelaxation();
+		l_compute_->enforceNoSlip(center, vel, acc, eps);
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++)
+			vel_[i] += (acc_[i] + stack_[i]) * 0.5 * dt_;
+
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++) {
+			stack_[i] = acc_[i];
+			acc_[i] = Vec3d::Zero();
+		}
+		//ensemble_->calcBox();
+
+	}
+
+	void MeshfreeBase::enforceNoSlip(Vec3d & momentum, Vec3d & impulse , double& mass, Vec3d center, double eps) {
+		
+		for (int i = 0; i < np_; i++) {
+			if (damage_[i] > 0.99) {
+				Vec3d eta = center - pos_[dict_[i]];
+				if (eta.norm() < eps) {
+					mass += mass_;
+					momentum += mass_ * vel_[dict_[i]];
+					impulse += mass_ * acc_[dict_[i]];
+				}
+			}
+		}
+		Vec3d velnew = momentum / mass;
+		Vec3d accnew = impulse / mass;
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP_
+		for (int i = 0; i < np_; i++) {
+			if (damage_[i] > 0.99 && (center - pos_[dict_[i]]).norm() < eps) {
+				vel_[dict_[i]] = velnew;
+				acc_[dict_[i]] = accnew;
+
+			}
+		}
+/*
+#ifdef _WITH_OMP_
+#pragma omp parallel for schedule(static)
+#endif // _WITH_OMP
+		for (int i = 0; i < np_; i++) {
+			Vec3d eta = center - pos_[dict_[i]];
+			if (damage_[i] > 0.99 && eta.norm() < eps) {
+				acc_[dict_[i]] = acc;
+				vel_[dict_[i]] = vel;
+			}
+		}
+		*/
 	}
 
 	void MeshfreeBase::saveVtk() {
@@ -460,8 +647,9 @@ namespace msl {
 	std::vector<AttributeInfo> AttributesGen::getAttrs() {
 		if (obj_.solver == "rigid")
 			return getRigid();
-		if (obj_.solver == "kl")
+		else if (obj_.solver == "kl")
 			return getStateKL();
+		else throwException("getAttrs", "undefined behavior!");
 
 	}
 
@@ -487,9 +675,12 @@ namespace msl {
 		attrs.push_back(MyAttr("scalar", "density", true, "constant", obj_.density));
 		attrs.push_back(MyAttr("scalar", "pressure", true, "zero"));
 		attrs.push_back(MyAttr("scalar", "damage", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "damage1", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "damage2", true, "zero"));
 		attrs.push_back(MyAttr("scalar", "delta_p", false, "zero"));
 		attrs.push_back(MyAttr("scalar", "theta_e", true, "zero"));
 		attrs.push_back(MyAttr("scalar", "theta_p", true, "zero"));
+		attrs.push_back(MyAttr("scalar", "tensile_limit", true, "zero"));
 		return attrs;
 	}
 }

@@ -30,7 +30,7 @@ namespace msl {
 		int												np_;
 		int												valid_np_;
 		int												out_np_;
-		int												total_cells_;
+		long											total_cells_;
 		std::shared_ptr<Ensemble>						ensemble_ptr_;
 
 		DomainConfig*									domain_cfg_;
@@ -42,8 +42,8 @@ namespace msl {
 		std::vector<std::shared_ptr<ScalarAttribute> >	scalar_attrs_;
 		std::vector<std::shared_ptr<VectorAttribute> >  vector_attrs_;
 		std::vector<std::shared_ptr<TensorAttribute> >  tensor_attrs_;
-		int*											id_;
-		int*											dict_;
+		int*											id_;				//! particle id
+		int*											dict_;				//! current particle # given particle id
 
 		int*											start_positions_;
 		int*											new_order_;
@@ -123,9 +123,9 @@ namespace msl {
 		
 		int end(CellIt it) { return it->second + parts_in_cell_[it->first]; }
 		
-		int begin(int cell_id) { return start_positions_[cell_id]; }
+		int begin(long cell_id) { return start_positions_[cell_id]; }
 		
-		int end(int cell_id) { return cell_id == total_cells_ - 1 ? np_ : start_positions_[cell_id + 1]; }
+		int end(long cell_id) { return cell_id == total_cells_ - 1 ? np_ : start_positions_[cell_id + 1]; }
 	};
 }
 
